@@ -1,2 +1,22 @@
 # Virtual Environment
 venv/
+# SarvSaathi/backend/.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+
+# Django Database
+# NEVER commit your database file
+db.sqlite3
+
+# Environment Variables
+# NEVER commit your secrets
+.env
+
+# Static & Media files (for later)
+staticfiles/
+media/
