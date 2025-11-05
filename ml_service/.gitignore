@@ -1,0 +1,14 @@
+# SarvSaathi/ml_service/.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+
+# Environment Variables
+.env
+
+# Notebook checkpoints
+.ipynb_checkpoints/
