@@ -1,2 +1,14 @@
 # Virtual Environment
 venv/
+
+# SarvSaathi/.gitignore
+
+# OS-specific
+.DS_Store
+
+# Editor-specific
+.vscode/
+.idea/
+
+# Log files
+*.log
