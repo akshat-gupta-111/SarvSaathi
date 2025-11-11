@@ -2,6 +2,7 @@
 # We need IsAuthenticated to "lock" our doors
 from rest_framework.permissions import AllowAny, IsAuthenticated 
 from rest_framework import generics
+from rest_framework.exceptions import NotFound
 from .models import CustomUser, Patient, DoctorProfile # Import new models
 from .serializers import (
     UserRegistrationSerializer,
@@ -96,4 +97,18 @@ class DoctorProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         # This is the "key". It finds the *one* profile
         # linked to the logged-in doctor.
-        return self.request.user.doctor_profile
+        try:
+            return self.request.user.doctor_profile
+        except DoctorProfile.DoesNotExist:
+            raise NotFound(detail="Doctor profile is not set up yet. Please complete your profile from the onboarding flow or contact support.")
+        except AttributeError:
+            raise NotFound(detail="Doctor profile is not available for this account.")
+
+
+class VerifiedDoctorListView(generics.ListAPIView):
+    """Public listing of verified doctor profiles for the consumer portal."""
+    permission_classes = [AllowAny]
+    serializer_class = DoctorProfileSerializer
+
+    def get_queryset(self):
+        return DoctorProfile.objects.filter(is_verified=True)

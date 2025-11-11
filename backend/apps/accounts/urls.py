@@ -6,7 +6,8 @@ from .views import HealthCheckView, RegisterView # <-- Import our new view
 from .views import (
     PatientListView,
     PatientDetailView,
-    DoctorProfileView
+    DoctorProfileView,
+    VerifiedDoctorListView,
 )
 
 urlpatterns = [
@@ -25,4 +26,7 @@ urlpatterns = [
     # --- Doctor Endpoints (Locked) ---
     # GET or PUT /api/accounts/doctor-profile/
     path('doctor-profile/', DoctorProfileView.as_view(), name='doctor-profile'),
+
+    # --- Public Doctor Listings ---
+    path('doctors/verified/', VerifiedDoctorListView.as_view(), name='verified-doctor-list'),
 ]

@@ -94,14 +94,17 @@ class DoctorProfileSerializer(serializers.ModelSerializer):
     Serializer for the Doctor's professional profile.
     """
     age = serializers.IntegerField(read_only=True)
+    is_complete = serializers.BooleanField(read_only=True)
+    is_verified = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = DoctorProfile
         fields = (
             'id', 'user', 'first_name', 'last_name', 'date_of_birth', 'phone_number', 
-            'specialty', 'license_number', 'consultation_fee', 'clinic_address', 'age'
+            'specialty', 'license_number', 'consultation_fee', 'clinic_address', 'age',
+            'is_complete', 'is_verified'
         )
-        read_only_fields = ('user',)
+        read_only_fields = ('user', 'is_verified', 'is_complete')
 
     def validate_date_of_birth(self, value):
         # We can also add an age check for doctors

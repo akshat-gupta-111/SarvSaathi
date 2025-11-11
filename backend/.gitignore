@@ -20,3 +20,6 @@ db.sqlite3
 # Static & Media files (for later)
 staticfiles/
 media/
+
+pyWhatKit_DB.txt
+whats.py

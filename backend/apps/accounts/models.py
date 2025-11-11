@@ -119,6 +119,9 @@ class DoctorProfile(models.Model):
     consultation_fee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     clinic_address = models.TextField(blank=True)
 
+    # Admin toggles this when a doctor's profile has been reviewed manually.
+    is_verified = models.BooleanField(default=False)
+
     def __str__(self):
         return f"Dr. {self.first_name} {self.last_name} ({self.specialty})"
 
@@ -127,3 +130,21 @@ class DoctorProfile(models.Model):
         if not self.date_of_birth:
             return None
         return relativedelta(date.today(), self.date_of_birth).years
+
+    @property
+    def is_complete(self):
+        """Return True when the profile has all mandatory professional details."""
+        mandatory_values = [
+            self.first_name,
+            self.last_name,
+            self.date_of_birth,
+            self.phone_number,
+            self.specialty,
+            self.license_number,
+            self.clinic_address,
+        ]
+
+        # consultation_fee needs an explicit None check because Decimal can be 0.
+        is_fee_provided = self.consultation_fee is not None
+
+        return all(mandatory_values) and is_fee_provided

@@ -2,7 +2,7 @@
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser
+from .models import CustomUser, DoctorProfile
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
@@ -33,3 +33,28 @@ class CustomUserAdmin(UserAdmin):
     filter_horizontal = ('groups', 'user_permissions',)
 
 admin.site.register(CustomUser, CustomUserAdmin)
+
+
+@admin.register(DoctorProfile)
+class DoctorProfileAdmin(admin.ModelAdmin):
+    list_display = (
+        'user_email',
+        'specialty',
+        'license_number',
+        'is_complete',
+        'is_verified',
+    )
+    list_filter = ('is_verified', 'specialty')
+    search_fields = (
+        'user__email',
+        'first_name',
+        'last_name',
+        'specialty',
+        'license_number',
+    )
+    list_editable = ('is_verified',)
+    readonly_fields = ('is_complete',)
+
+    @admin.display(ordering='user__email', description='Email')
+    def user_email(self, obj):
+        return obj.user.email
