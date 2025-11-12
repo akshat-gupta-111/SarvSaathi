@@ -2,7 +2,8 @@
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, DoctorProfile
+# NEW: Added 'Patient' to this import
+from .models import CustomUser, DoctorProfile, Patient
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
@@ -58,3 +59,30 @@ class DoctorProfileAdmin(admin.ModelAdmin):
     @admin.display(ordering='user__email', description='Email')
     def user_email(self, obj):
         return obj.user.email
+
+# NEW: Added this entire class to register the Patient model
+@admin.register(Patient)
+class PatientAdmin(admin.ModelAdmin):
+    # What fields to show in the list view
+    list_display = (
+        '__str__', # This shows the model's name (e.g., "John Doe (self)")
+        'account_holder_email', 
+        'relationship', 
+        'is_complete'
+    )
+    
+    # What fields to filter by on the side
+    list_filter = ('relationship',)
+    
+    # What fields you can search by
+    search_fields = (
+        'first_name', 
+        'last_name', 
+        'email', 
+        'account_holder__email'
+    )
+    
+    # This is a helper to show the account holder's email
+    @admin.display(ordering='account_holder__email', description='Account Holder')
+    def account_holder_email(self, obj):
+        return obj.account_holder.email

@@ -88,7 +88,10 @@ class PatientSerializer(serializers.ModelSerializer):
             
         return value
 
-# --- ADD THIS NEW SERIALIZER ---
+# (Your UserRegistrationSerializer and PatientSerializer are already in this file)
+# ...
+
+# --- REPLACE YOUR OLD DoctorProfileSerializer WITH THIS ---
 class DoctorProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for the Doctor's professional profile.
@@ -96,14 +99,25 @@ class DoctorProfileSerializer(serializers.ModelSerializer):
     age = serializers.IntegerField(read_only=True)
     is_complete = serializers.BooleanField(read_only=True)
     is_verified = serializers.BooleanField(read_only=True)
+    
+    # NEW: We can also get the email from the linked user,
+    # which is useful for the frontend.
+    email = serializers.EmailField(source="user.email", read_only=True)
 
     class Meta:
         model = DoctorProfile
+        
+        # --- MODIFICATION ---
+        # Add 'latitude' and 'longitude' to this list
         fields = (
-            'id', 'user', 'first_name', 'last_name', 'date_of_birth', 'phone_number', 
-            'specialty', 'license_number', 'consultation_fee', 'clinic_address', 'age',
-            'is_complete', 'is_verified'
+            'id', 'user', 'email', 'first_name', 'last_name', 'date_of_birth', 
+            'phone_number', 'specialty', 'license_number', 
+            'consultation_fee', 'clinic_address', 
+            'latitude', 'longitude', # <-- HERE
+            'age', 'is_complete', 'is_verified'
         )
+        # --- END MODIFICATION ---
+        
         read_only_fields = ('user', 'is_verified', 'is_complete')
 
     def validate_date_of_birth(self, value):

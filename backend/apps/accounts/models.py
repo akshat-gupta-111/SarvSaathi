@@ -100,6 +100,9 @@ class Patient(models.Model):
         ])
 
 # --- ADD THIS NEW MODEL ---
+# (Your CustomUser and Patient models are already above this)
+# ...
+
 class DoctorProfile(models.Model):
     # This is a one-to-one link. One User has ONE Doctor Profile.
     user = models.OneToOneField(
@@ -117,8 +120,23 @@ class DoctorProfile(models.Model):
     specialty = models.CharField(max_length=100, blank=True)
     license_number = models.CharField(max_length=50, blank=True)
     consultation_fee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    
+    # --- MODIFICATION START ---
+    
+    # We've kept clinic_address
     clinic_address = models.TextField(blank=True)
+    
+    # NEW: Added latitude for mapping
+    latitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True
+    )
+    # NEW: Added longitude for mapping
+    longitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True
+    )
 
+    # --- MODIFICATION END ---
+    
     # Admin toggles this when a doctor's profile has been reviewed manually.
     is_verified = models.BooleanField(default=False)
 
@@ -134,17 +152,37 @@ class DoctorProfile(models.Model):
     @property
     def is_complete(self):
         """Return True when the profile has all mandatory professional details."""
-        mandatory_values = [
+        
+        # --- MODIFICATION START ---
+        # We've changed this to be safer.
+        # An empty string (like '') is "truthy" in a list, but it's not complete.
+        # We must check `is not None` for numbers/decimals and non-empty for text.
+        
+        # 1. Check all text fields
+        mandatory_text_values = [
             self.first_name,
             self.last_name,
-            self.date_of_birth,
             self.phone_number,
             self.specialty,
             self.license_number,
             self.clinic_address,
         ]
-
-        # consultation_fee needs an explicit None check because Decimal can be 0.
+        
+        # 2. Check all date/number fields
+        is_dob_provided = self.date_of_birth is not None
         is_fee_provided = self.consultation_fee is not None
+        
+        # NEW: Check our new location fields
+        is_lat_provided = self.latitude is not None
+        is_lon_provided = self.longitude is not None
 
-        return all(mandatory_values) and is_fee_provided
+        # The profile is complete ONLY if all text fields are non-empty
+        # AND all number/date/location fields are provided.
+        return (
+            all(bool(value and value.strip()) for value in mandatory_text_values) and
+            is_dob_provided and
+            is_fee_provided and
+            is_lat_provided and
+            is_lon_provided
+        )
+        # --- MODIFICATION END ---
