@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'django.contrib.admin',
+    'apps.appointments',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -40,8 +41,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'apps.accounts.apps.AccountsConfig',
-    'apps.appointments.apps.AppointmentsConfig',
+    # 'apps.appointments.apps.AppointmentsConfig',
     'apps.emergency.apps.EmergencyConfig',
+
 
     'rest_framework',
     'rest_framework_simplejwt',
@@ -156,3 +158,25 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
+
+
+# (All your other settings are above this line)
+# ...
+
+# --- PayPal Sandbox Configuration ---
+# 'sandbox' or 'live' (we use 'sandbox' for testing)
+PAYPAL_MODE = "sandbox"
+
+# --- PASTE YOUR KEYS FROM PAYPAL DEVELOPER DASHBOARD ---
+PAYPAL_CLIENT_ID = 'YOUR_CLIENT_ID_GOES_HERE'
+PAYPAL_CLIENT_SECRET = 'YOUR_SECRET_GOES_HERE'
+
+# --- URLS ---
+# We MUST tell PayPal where to send the user after payment.
+# These are the URLs we will build in our API.
+PAYMENT_SUCCESS_URL = 'http://127.0.0.1:8000/api/appointments/execute-payment/'
+PAYMENT_CANCEL_URL = 'http://127.0.0.1:8000/api/appointments/cancel-payment/'
+
+# --- Booking Logic ---
+# Our token amount (in Rupees)
+BOOKING_TOKEN_AMOUNT_IN_RUPEES = 100
