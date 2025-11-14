@@ -168,8 +168,8 @@ SIMPLE_JWT = {
 PAYPAL_MODE = "sandbox"
 
 # --- PASTE YOUR KEYS FROM PAYPAL DEVELOPER DASHBOARD ---
-PAYPAL_CLIENT_ID = 'YOUR_CLIENT_ID_GOES_HERE'
-PAYPAL_CLIENT_SECRET = 'YOUR_SECRET_GOES_HERE'
+PAYPAL_CLIENT_ID = 'AdvGSNP8UV12hrKn4WBi7H-kd2H0vqEtMUxR7A0JqvpTlpy-R5LlCDlNqatJQ-kA2haPm7mlalLGpOV5'
+PAYPAL_CLIENT_SECRET = 'EEkDlEPjqs9YEOzXj-lebHJFVyzig5LVGrAaAM8cThXuu_-0j9mi_J_-d6iiJGx04ghrdq7KouYBY4Cd'
 
 # --- URLS ---
 # We MUST tell PayPal where to send the user after payment.
@@ -178,5 +178,5 @@ PAYMENT_SUCCESS_URL = 'http://127.0.0.1:8000/api/appointments/execute-payment/'
 PAYMENT_CANCEL_URL = 'http://127.0.0.1:8000/api/appointments/cancel-payment/'
 
 # --- Booking Logic ---
-# Our token amount (in Rupees)
-BOOKING_TOKEN_AMOUNT_IN_RUPEES = 100
+# Our token amount (in USD)
+BOOKING_TOKEN_AMOUNT_IN_USD = 5.00  # Equivalent to approx 100 INR

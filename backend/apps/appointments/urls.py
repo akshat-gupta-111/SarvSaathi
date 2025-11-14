@@ -4,7 +4,9 @@ from .views import (
     PatientTimeSlotListView,
     AppointmentCreateView,      # NEW: Import the booking view
     AppointmentExecuteView,     # NEW: Import the execute view
-    AppointmentCancelView,      # NEW: Import the cancel view
+    AppointmentCancelView, 
+    PatientAppointmentListView,
+    DoctorScheduleListView     
 )
 
 urlpatterns = [
@@ -50,5 +52,15 @@ urlpatterns = [
         'cancel-payment/', 
         AppointmentCancelView.as_view(), 
         name='appointment-cancel'
+    ),
+    path(
+        'my-appointments/',
+        PatientAppointmentListView.as_view(),
+        name='patient-appointment-list'
+    ),
+    path(
+        'my-schedule/',
+        DoctorScheduleListView.as_view(),
+        name='doctor-schedule-list'
     ),
 ]

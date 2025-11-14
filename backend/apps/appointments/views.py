@@ -4,7 +4,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils import timezone
 from django.conf import settings
+from .serializers import PatientAppointmentListSerializer
 from decimal import Decimal
+from .serializers import DoctorScheduleSerializer
+from .permissions import IsDoctor
+from django.utils import timezone
+
+
 
 # Import our models
 from .models import TimeSlot, Appointment
@@ -25,6 +31,12 @@ from .permissions import IsDoctor
 # --- PayPal Imports ---
 import paypalrestsdk
 import logging
+
+paypalrestsdk.configure({
+    "mode": settings.PAYPAL_MODE,
+    "client_id": settings.PAYPAL_CLIENT_ID,
+    "client_secret": settings.PAYPAL_CLIENT_SECRET
+})
 
 # --- Configure PayPal SDK ---
 # This runs once when the file is loaded.
@@ -107,51 +119,46 @@ class AppointmentCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        # 1. Validate the incoming time_slot_id
+        # 1. Validate the incoming data (time_slot_id and patient_id)
+        # We pass the request context so the serializer can access the user
         input_serializer = AppointmentCreateSerializer(
             data=request.data,
             context={'request': request}
         )
+        
+        # The serializer now runs ALL our checks:
+        # 1. Is the time slot valid?
+        # 2. Is the patient ID valid and does it belong to the user?
+        # 3. Is that patient's profile complete?
         if not input_serializer.is_valid():
             return Response(input_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Check YOUR "Profile Complete" rule
-        try:
-            patient = request.user.patient_profile # Assuming 'patient_profile' related_name
-        except Patient.DoesNotExist:
-             return Response({"error": "Patient profile not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        if not patient.is_complete:
-            return Response(
-                {"error": "Please complete your patient profile before booking."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        # 3. Get the validated TimeSlot from the serializer context
+        # 2. Get the validated objects from the serializer's context
         time_slot = input_serializer.context['time_slot']
+        patient = input_serializer.context['patient']  # <-- THIS IS THE FIX
         doctor = time_slot.doctor
 
-        # 4. Calculate the amount
+        # 3. Calculate the amount
         amount_decimal = Decimal(0)
         if time_slot.mode == 'IN_CLINIC':
-            amount_decimal = Decimal(settings.BOOKING_TOKEN_AMOUNT_IN_RUPEES)
+            amount_decimal = Decimal(settings.BOOKING_TOKEN_AMOUNT_IN_USD)
         else: # 'ONLINE'
             amount_decimal = doctor.consultation_fee
         
         # Format for PayPal
         amount_str = "{:.2f}".format(amount_decimal) 
-        currency = "INR" # Set currency to Indian Rupees
+        currency = "USD" # Set currency to US Dollars
 
-        # 5. Create the local Appointment object
+        # 4. Create the local Appointment object
         appointment = Appointment.objects.create(
-            patient=patient,
+            patient=patient,  # <-- Use the validated patient
             time_slot=time_slot,
             status='PENDING_PAYMENT',
             payment_status='UNPAID',
             amount_paid=Decimal(0) # Nothing paid yet
         )
         
-        # 6. --- ADAPTED FROM YOUR PAYPAL CODE ---
+        # 5. --- ADAPTED FROM YOUR PAYPAL CODE ---
         # Build the PayPal payment object
         payment_data = {
             "intent": "sale",
@@ -182,11 +189,11 @@ class AppointmentCreateView(APIView):
             payment = paypalrestsdk.Payment(payment_data)
 
             if payment.create():
-                # 7. Save the PayPal Payment ID to our Appointment
+                # 6. Save the PayPal Payment ID to our Appointment
                 appointment.payment_order_id = payment.id
                 appointment.save()
 
-                # 8. Find and send the approval_url to the frontend
+                # 7. Find and send the approval_url to the frontend
                 approval_url = None
                 for link in payment.links:
                     if link.rel == "approval_url":
@@ -293,3 +300,58 @@ class AppointmentCancelView(APIView):
         logging.info("A user cancelled a PayPal payment.")
         # In a real app, you'd redirect to a "Your payment was cancelled" page
         return Response({"message": "Payment was cancelled."}, status=status.HTTP_200_OK)
+
+
+# --- View 6: For Patients (List their own appointments) ---
+class PatientAppointmentListView(generics.ListAPIView):
+    """
+    API View for an authenticated PATIENT to see a list of
+    their own 'CONFIRMED' or 'COMPLETED' appointments.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = PatientAppointmentListSerializer
+
+    def get_queryset(self):
+        """
+        This view only returns appointments for the logged-in user.
+        """
+        # Get the currently logged-in user
+        user = self.request.user
+        
+        # We only want to show appointments that are confirmed or finished.
+        # We filter out 'PENDING_PAYMENT' and 'CANCELLED' ones.
+        valid_statuses = ['CONFIRMED', 'COMPLETED']
+        
+        # Find all patients (family members) linked to this user's account
+        patient_profiles = user.patients.all()
+        
+        # Return all appointments for any of those patient profiles
+        return Appointment.objects.filter(
+            patient__in=patient_profiles,
+            status__in=valid_statuses
+        ).order_by('time_slot__start_time') # Show upcoming ones first
+    
+
+# --- View 7: For Doctors (List their own schedule) ---
+class DoctorScheduleListView(generics.ListAPIView):
+    """
+    API View for an authenticated DOCTOR to see a list of
+    their own upcoming 'CONFIRMED' appointments.
+    """
+    permission_classes = [IsDoctor, IsAuthenticated]
+    serializer_class = DoctorScheduleSerializer
+
+    def get_queryset(self):
+        """
+        This view only returns appointments for the logged-in doctor.
+        """
+        # Get the currently logged-in doctor's profile
+        doctor_profile = self.request.user.doctor_profile
+        
+        # We only want to show appointments that are
+        # confirmed and in the future.
+        return Appointment.objects.filter(
+            time_slot__doctor=doctor_profile,
+            status='CONFIRMED',
+            time_slot__start_time__gte=timezone.now() # Only show future appointments
+        ).order_by('time_slot__start_time') # Show upcoming ones first

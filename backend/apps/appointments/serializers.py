@@ -1,6 +1,13 @@
 from rest_framework import serializers
 from django.utils import timezone
 from django.conf import settings
+from apps.accounts.models import Patient
+from .models import TimeSlot, Appointment, DoctorProfile 
+import urllib.parse
+from apps.accounts.models import DoctorProfile
+import logging 
+import random 
+
 
 # Make sure to import all the models we'll need
 from .models import TimeSlot, Appointment
@@ -37,57 +44,94 @@ class TimeSlotListSerializer(serializers.ModelSerializer):
         fields = ('id', 'doctor', 'start_time', 'end_time', 'mode', 'is_available')
 
 # --- Serializer 3: For DOCTOR to CREATE their time slots ---
+
+
 class TimeSlotCreateSerializer(serializers.ModelSerializer):
     """
-    A WRITE-ONLY serializer for DOCTORS to create their availability.
+    Serializer for a Doctor to CREATE a new TimeSlot.
+    This is a ModelSerializer, so it has a .save() method.
     """
     class Meta:
         model = TimeSlot
-        # We only need these fields from the doctor.
-        # The 'doctor' field itself will be set automatically from the logged-in user.
-        fields = ('start_time', 'end_time', 'mode')
+        fields = ['id', 'start_time', 'end_time', 'mode', 'doctor']
+        
+        # The 'doctor' field is set automatically in the view, not by the user.
+        # The 'id' is read-only because it's set by the database.
+        read_only_fields = ['id', 'doctor']
 
     def validate(self, data):
         """
-        Check that start_time is before end_time and not in the past.
+        Check that the start_time is before the end_time and not in the past.
         """
         if data['start_time'] >= data['end_time']:
             raise serializers.ValidationError("End time must be after start time.")
         
-        if data['start_time'] < timezone.now():
+        if data['start_time'] <= timezone.now():
             raise serializers.ValidationError("Cannot create time slots in the past.")
-        
         return data
+
 
 # --- Serializer 4 (Phase 2): For Patient to START a booking ---
 
 class AppointmentCreateSerializer(serializers.Serializer):
     """
-    This serializer is used ONLY to validate the patient's
-    INPUT when they start a booking. It just takes a time_slot_id.
+    Serializer to CREATE an appointment.
+    Takes a time_slot_id and a patient_id.
     """
-    # This is the only field the patient needs to send.
-    time_slot_id = serializers.IntegerField()
+    time_slot_id = serializers.IntegerField(write_only=True)
+    patient_id = serializers.IntegerField(write_only=True)
 
-    def validate_time_slot_id(self, value):
-        # Check 1: Does this TimeSlot even exist?
-        try:
-            time_slot = TimeSlot.objects.get(id=value)
-        except TimeSlot.DoesNotExist:
-            raise serializers.ValidationError("This time slot does not exist.")
+    def validate(self, data):
+        """
+        Validate the time_slot_id and patient_id.
+        This is where we check all our rules.
+        """
+        request = self.context['request']
         
-        # Check 2: Is it still available?
-        if not time_slot.is_available:
-            raise serializers.ValidationError("This time slot is no longer available.")
-            
-        # Check 3: Is it in the past?
-        if time_slot.start_time < timezone.now():
-            raise serializers.ValidationError("This time slot is in the past.")
+        # --- 1. Validate Time Slot ---
+        try:
+            time_slot = TimeSlot.objects.get(
+                id=data['time_slot_id'],
+                is_available=True,
+                start_time__gte=timezone.now()
+            )
+        except TimeSlot.DoesNotExist:
+            raise serializers.ValidationError("This time slot is not available.")
 
-        # The 'value' is just an ID. We'll pass the actual
-        # 'time_slot' object to the view by attaching it here.
+        # --- 2. THE FIX: Check if slot is already linked ---
+        # A OneToOneField's reverse relation ('appointment') will raise
+        # DoesNotExist if no appointment is linked. This is what we want.
+        try:
+            _ = time_slot.appointment # Check if the reverse 'appointment' exists
+            
+            # If the line above *succeeds*, it means a link exists.
+            # This is bad.
+            raise serializers.ValidationError("This time slot is already pending or booked.")
+        
+        except Appointment.DoesNotExist:
+            # This is the SUCCESS case. No appointment is linked.
+            pass 
+        # --- END FIX ---
+
+        # --- 3. Validate Patient ---
+        try:
+            patient = Patient.objects.get(
+                id=data['patient_id'],
+                account_holder=request.user
+            )
+        except Patient.DoesNotExist:
+            raise serializers.ValidationError("Invalid patient ID.")
+
+        # --- 4. Validate Profile Complete (YOUR RULE) ---
+        if not patient.is_complete:
+            raise serializers.ValidationError(
+                "Please complete this patient's profile before booking."
+            )
+
+        # --- Success! ---
         self.context['time_slot'] = time_slot
-        return value
+        self.context['patient'] = patient
+        return data
 
 # --- Serializer 5 (Phase 2): For Patient to GET the "approval_url" ---
 
@@ -130,3 +174,158 @@ class AppointmentDetailSerializer(serializers.ModelSerializer):
             'created_at',
         )
         read_only_fields = fields
+
+
+class PatientAppointmentDoctorSerializer(serializers.ModelSerializer):
+    """
+    A nested serializer to show *only* the doctor's public info.
+    """
+    # --- THIS IS THE FIX ---
+    # 1. We change from CharField to SerializerMethodField
+    full_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = DoctorProfile
+        # 2. We add 'full_name' to the fields list
+        fields = ['full_name', 'specialty']
+
+    # 3. We add the "get" method for our new field
+    def get_full_name(self, obj):
+        """
+        Combines the doctor's first and last name.
+        'obj' is the DoctorProfile instance.
+        """
+        # We can even add the "Dr." prefix here.
+        return f"Dr. {obj.first_name} {obj.last_name}"
+
+
+class PatientAppointmentTimeSlotSerializer(serializers.ModelSerializer):
+    """
+    A nested serializer to show the time slot and doctor info.
+    """
+    # Use the serializer above to show the doctor's details
+    doctor = PatientAppointmentDoctorSerializer(read_only=True)
+    
+    class Meta:
+        model = TimeSlot
+        fields = ['start_time', 'end_time', 'mode', 'doctor']
+
+class PatientAppointmentListSerializer(serializers.ModelSerializer):
+    """
+    Main serializer for the "My Appointments" list.
+    This serializer combines all the data a patient needs.
+    """
+    # Use the serializer above to show the nested time slot
+    time_slot = PatientAppointmentTimeSlotSerializer(read_only=True)
+    
+    # This is the NEW field that uses your Google Maps logic
+    get_directions_link = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Appointment
+        fields = [
+            'id',
+            'status',
+            'time_slot',
+            'get_directions_link',
+            'patient_notes',
+            'video_call_link',
+        ]
+        
+    def get_get_directions_link(self, obj):
+        """
+        This function generates a Google Maps directions URL.
+        Format: https://www.google.com/maps/dir/current_location/destination/
+        """
+        doctor = obj.time_slot.doctor
+        
+        # Only generate a link if the doctor has set their coordinates
+        if doctor.latitude and doctor.longitude:
+            # Use the Google Maps dir format: /dir/origin/destination/
+            # Using empty origin so Maps will use current location
+            destination = f"{doctor.latitude},{doctor.longitude}"
+            
+            # Generate the proper Google Maps directions URL
+            base_url = "https://www.google.com/maps/dir/"
+            # Add current location placeholder (empty) and destination
+            directions_url = f"{base_url}Current+Location/{destination}/"
+            
+            return directions_url
+        
+        # If no coordinates, return None so the frontend can hide the button
+        return None
+    
+class DoctorSchedulePatientSerializer(serializers.ModelSerializer):
+    """
+    A nested serializer to show *only* the patient's public info
+    for the doctor's dashboard.
+    """
+    full_name = serializers.SerializerMethodField()
+    age = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Patient
+        fields = ['id', 'full_name', 'phone_number', 'email', 'age']
+    
+    def get_full_name(self, obj):
+        """
+        'obj' is the Patient instance.
+        """
+        return f"{obj.first_name} {obj.last_name}"
+
+
+class DoctorScheduleSerializer(serializers.ModelSerializer):
+    """
+    Main serializer for the "Doctor's Schedule" list.
+    """
+    # Use our new nested serializer for the patient
+    patient = DoctorSchedulePatientSerializer(read_only=True)
+    
+    # Flatten the TimeSlot fields for easy access
+    start_time = serializers.DateTimeField(source='time_slot.start_time')
+    end_time = serializers.DateTimeField(source='time_slot.end_time')
+    mode = serializers.CharField(source='time_slot.mode')
+
+    # This is the NEW field for our ML Model
+    no_show_prediction = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Appointment
+        fields = [
+            'id',
+            'status',
+            'start_time',
+            'end_time',
+            'mode',
+            'patient', # The nested patient object
+            'patient_notes', # The symptoms
+            'no_show_prediction',
+        ]
+
+    def get_no_show_prediction(self, obj):
+        """
+        This function prepares data and calls the ML model.
+        'obj' is the Appointment instance.
+        """
+        
+        # 1. Prepare the features your model needs
+        features = {
+            'booking_date': obj.created_at,
+            'appointment_date': obj.time_slot.start_time,
+            'message_sent': obj.reminder_sent,
+            # Add other features like 'age', 'patient_id', etc.
+        }
+
+        # 2. Call the ML Model API
+        # (This is where you would use 'requests' or 'httpx'
+        # to call your deployed ML service)
+        
+        # --- SIMULATION ---
+        # For now, we will simulate the ML call
+        # and just return a random prediction.
+        logging.info(f"Simulating ML prediction for Appointment ID {obj.id} with features: {features}")
+        prediction = random.choice(["Low Risk", "Medium Risk", "High Risk"])
+        # --- END SIMULATION ---
+        
+        # 3. Return the prediction
+        return prediction
