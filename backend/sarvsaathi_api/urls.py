@@ -33,6 +33,10 @@ urlpatterns = [
     # and get back their Access Token.
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     
+    # This tells Django to send any URL starting with 'api/appointments/'
+    # to the new 'urls.py' file we just created in that app.
+    path('api/appointments/', include('apps.appointments.urls')),
+    
     # 2. This is the "Token Refresh" Endpoint
     # (For later, to get a new token when the old one expires)
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
