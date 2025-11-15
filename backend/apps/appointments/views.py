@@ -10,6 +10,12 @@ from .serializers import DoctorScheduleSerializer
 from .permissions import IsDoctor
 from django.utils import timezone
 
+from apps.emergency.notifications import (
+    send_confirmation_email_to_patient,
+    send_confirmation_sms_to_patient,
+    send_new_booking_alert_to_doctor
+)
+from paypalrestsdk import Payment
 
 
 # Import our models
@@ -220,71 +226,87 @@ class AppointmentCreateView(APIView):
 
 # --- View 4: For Frontend (EXECUTE a payment - STAGE 3) ---
 
+# --- View 4: For Patients (EXECUTE a booking - STAGE 3) ---
 class AppointmentExecuteView(APIView):
     """
-    API View for the frontend to confirm a payment.
-    This is STAGE 3 of the booking process.
+    API View for STAGE 3 of the booking process.
+    The frontend sends the paymentId and PayerID.
+    The backend "executes" the payment, confirms the booking,
+    and sends notifications.
     """
-    permission_classes = [AllowAny] # Anyone can hit this, but we validate the data
-
+    permission_classes = [AllowAny] # PayPal calls this, not the user
+    serializer_class = AppointmentExecuteSerializer
+    
     def post(self, request, *args, **kwargs):
-        # 1. Validate the incoming 'paymentId' and 'PayerID'
-        input_serializer = AppointmentExecuteSerializer(data=request.data)
-        if not input_serializer.is_valid():
-            return Response(input_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        payment_id = input_serializer.validated_data['paymentId']
-        payer_id = input_serializer.validated_data['PayerID']
-
-        # 2. --- ADAPTED FROM YOUR PAYPAL CODE ---
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        payment_id = serializer.validated_data['paymentId']
+        payer_id = serializer.validated_data['PayerID']
+        
         try:
-            payment = paypalrestsdk.Payment.find(payment_id)
+            # 1. Find the local appointment record
+            appointment = Appointment.objects.get(payment_order_id=payment_id)
             
-            # 3. Execute the payment
-            if payment.execute({"payer_id": payer_id}):
-                # 4. Success! Now, update OUR database
-                try:
-                    # Find our appointment using the saved payment ID
-                    appointment = Appointment.objects.get(payment_order_id=payment.id)
-                except Appointment.DoesNotExist:
-                    logging.error(f"CRITICAL: Payment {payment.id} executed but no matching appointment found.")
-                    return Response({"error": "Appointment not found."}, status=status.HTTP_404_NOT_FOUND)
+            # 2. Find the payment on PayPal
+            payment = Payment.find(payment_id)
 
-                # 5. Confirm the booking
+            # 3. Execute the payment (capture the funds)
+            if payment.execute({"payer_id": payer_id}):
+                
+                # 4. --- SUCCESS! Update our Database ---
                 appointment.status = 'CONFIRMED'
                 appointment.payment_status = 'PAID'
                 
-                # Save the amount paid from the transaction
-                try:
-                    amount_paid = Decimal(payment.transactions[0].amount.total)
-                    appointment.amount_paid = amount_paid
-                except Exception:
-                    pass # Keep default
-
-                appointment.save()
-
-                # 6. Secure the time slot
-                appointment.time_slot.is_available = False
-                appointment.time_slot.save()
+                # Get the *actual* amount paid from PayPal
+                paid_amount_str = payment.transactions[0].amount.total
+                appointment.amount_paid = Decimal(paid_amount_str)
                 
-                # 7. (This is where you would trigger your email/WhatsApp utilities)
-                # send_confirmation_email(appointment.patient.email, ...)
+                # Secure the time slot
+                appointment.time_slot.is_available = False
+                
+                # Save changes
+                appointment.save()
+                appointment.time_slot.save()
 
-                # Send back the confirmed appointment details
-                output_serializer = AppointmentDetailSerializer(appointment)
-                return Response(output_serializer.data, status=status.HTTP_200_OK)
+                # 5. --- SEND ALL NOTIFICATIONS ---
+                # We do this in a try/except so a notification
+                # failure doesn't break the booking.
+                try:
+                    patient = appointment.patient
+                    doctor = appointment.time_slot.doctor
+                    
+                    logging.info(f"Sending notifications for confirmed Appointment ID: {appointment.id}")
+                    
+                    # Send to Patient
+                    send_confirmation_email_to_patient(patient, appointment)
+                    send_confirmation_sms_to_patient(patient, appointment)
+                    
+                    # Send to Doctor
+                    send_new_booking_alert_to_doctor(doctor, patient, appointment)
+
+                except Exception as e:
+                    logging.error(f"CRITICAL: Notification dispatch failed for Appointment {appointment.id}: {e}")
+                
+                # 6. Send final success response
+                serializer = AppointmentDetailSerializer(appointment)
+                return Response(serializer.data, status=status.HTTP_200_OK)
             
             else:
                 # Payment execution failed
-                logging.error(f"PayPal payment.execute() error: {payment.error}")
+                logging.error(f"PayPal payment.execute() failed: {payment.error}")
+                appointment.status = 'CANCELLED'
+                appointment.save()
                 return Response({"error": "Payment execution failed", "details": payment.error}, status=status.HTTP_400_BAD_REQUEST)
-        
-        except paypalrestsdk.ResourceNotFound:
-            logging.error(f"PayPal Payment.find() error: Payment {payment_id} not found.")
-            return Response({"error": "Payment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        except Appointment.DoesNotExist:
+            logging.error(f"CRITICAL: AppointmentExecuteView called with unknown paymentId: {payment_id}")
+            return Response({"error": "Invalid payment ID. Appointment not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            logging.error(f"PayPal SDK Exception during execute: {e}")
+            logging.error(f"PayPal SDK Exception in ExecuteView: {e}")
             return Response({"error": "An error occurred with the payment gateway."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
 
 # --- View 5: For Frontend (CANCEL a payment) ---
 

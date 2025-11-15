@@ -32,6 +32,7 @@ urlpatterns = [
     # A user will POST their {email, password} to this URL
     # and get back their Access Token.
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/emergency/', include('apps.emergency.urls')),
     
     # This tells Django to send any URL starting with 'api/appointments/'
     # to the new 'urls.py' file we just created in that app.
