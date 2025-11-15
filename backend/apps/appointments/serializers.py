@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.utils import timezone
 from django.conf import settings
+import requests
 from apps.accounts.models import Patient
 from .models import TimeSlot, Appointment, DoctorProfile 
 import urllib.parse
@@ -310,12 +311,14 @@ class DoctorScheduleSerializer(serializers.ModelSerializer):
         
         # 1. Prepare the features your model needs
         features = {
-            'booking_date': obj.created_at,
-            'appointment_date': obj.time_slot.start_time,
-            'message_sent': obj.reminder_sent,
-            # Add other features like 'age', 'patient_id', etc.
+            'booking_date': obj.created_at.isoformat(),
+            'appointment_date': obj.time_slot.start_time.isoformat(),
+            'reminder_sent': obj.reminder_sent,
+            'patient_age': obj.patient.age or 37, # Use 37 (your median) as a default
+            # 'patient_gender' is not needed by your final model, so we leave it out
         }
 
+        ML_SERVICE_URL = 'http://127.0.0.1:5001/predict'
         # 2. Call the ML Model API
         # (This is where you would use 'requests' or 'httpx'
         # to call your deployed ML service)
@@ -323,9 +326,24 @@ class DoctorScheduleSerializer(serializers.ModelSerializer):
         # --- SIMULATION ---
         # For now, we will simulate the ML call
         # and just return a random prediction.
-        logging.info(f"Simulating ML prediction for Appointment ID {obj.id} with features: {features}")
-        prediction = random.choice(["Low Risk", "Medium Risk", "High Risk"])
-        # --- END SIMULATION ---
-        
-        # 3. Return the prediction
-        return prediction
+        try:
+            response = requests.post(
+                settings.ML_SERVICE_URL, # <-- USE THE SETTING
+                json=features, 
+                timeout=2 # Don't wait more than 2 seconds
+            )
+            
+            # Check for a successful response
+            if response.status_code == 200:
+                prediction_data = response.json()
+                # We return the "Low Risk" / "High Risk" label
+                return prediction_data.get('prediction', 'Error')
+            else:
+                # The ML service returned an error (e.g., 400, 500)
+                print(f"ML Service Error: {response.status_code} {response.text}")
+                return "N/A"
+
+        except requests.RequestException as e:
+            # The ML service is down or unreachable
+            print(f"Cannot connect to ML Service: {e}")
+            return "N/A"
