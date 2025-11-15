@@ -9,9 +9,12 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+from dotenv import load_dotenv
+load_dotenv()
 
 from pathlib import Path
 from datetime import timedelta
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,7 +36,6 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'django.contrib.admin',
-    'apps.appointments',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -41,9 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'apps.accounts.apps.AccountsConfig',
-    # 'apps.appointments.apps.AppointmentsConfig',
+    'apps.appointments.apps.AppointmentsConfig',
     'apps.emergency.apps.EmergencyConfig',
-
 
     'rest_framework',
     'rest_framework_simplejwt',
@@ -180,3 +181,30 @@ PAYMENT_CANCEL_URL = 'http://127.0.0.1:8000/api/appointments/cancel-payment/'
 # --- Booking Logic ---
 # Our token amount (in USD)
 BOOKING_TOKEN_AMOUNT_IN_USD = 5.00  # Equivalent to approx 100 INR
+
+# --- Twilio Configuration ---
+# For SMS notifications in emergency situations
+import os
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
+TWILIO_FROM_NUMBER = os.getenv('TWILIO_FROM_NUMBER', '')
+TWILIO_WHATSAPP_NUMBER = os.getenv('TWILIO_WHATSAPP_NUMBER', '')
+
+# --- Gmail Configuration ---
+# For email notifications in emergency situations
+SENDER_EMAIL = os.getenv('SENDER_EMAIL', '')
+SENDER_APP_PASSWORD = os.getenv('SENDER_APP_PASSWORD', '')
+
+# --- Emergency Notification Settings ---
+DEFAULT_COUNTRY_CODE = '+91'  # Default to India country code
+
+# --- Development Warning ---
+if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+    import logging
+    logging.warning("⚠️  Twilio credentials not configured. SMS notifications will be disabled.")
+    logging.warning("📝 Please set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER in your .env file.")
+
+if not SENDER_EMAIL or not SENDER_APP_PASSWORD:
+    import logging
+    logging.warning("⚠️  Gmail credentials not configured. Email notifications will be disabled.")
+    logging.warning("📝 Please set SENDER_EMAIL and SENDER_APP_PASSWORD in your .env file.")
