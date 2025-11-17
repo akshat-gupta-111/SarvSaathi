@@ -47,9 +47,6 @@ def send_emergency_email(recipient_email, message_body):
     sender_email = os.getenv("SENDER_EMAIL")
     sender_password = os.getenv("SENDER_APP_PASSWORD")
     
-    # Debug logging to see what email is being used
-    logging.info(f"DEBUG: Using sender email: {sender_email}")
-    
     if not (sender_email and sender_password):
         logging.error("Gmail credentials (SENDER_EMAIL, SENDER_APP_PASSWORD) not set. Cannot send email.")
         return False
@@ -65,7 +62,7 @@ def send_emergency_email(recipient_email, message_body):
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
             smtp.login(sender_email, sender_password)
             smtp.send_message(msg)
-        logging.info(f"Emergency Email sent from {sender_email} to {recipient_email}")
+        logging.info(f"Emergency Email sent to {recipient_email}")
         return True
     except Exception as e:
         logging.error(f"Failed to send emergency email: {e}")
@@ -115,10 +112,6 @@ def _get_gmail_smtp():
     """Helper to get a logged-in Gmail SMTP client."""
     sender_email = os.getenv("SENDER_EMAIL")
     sender_password = os.getenv("SENDER_APP_PASSWORD")
-    
-    # Debug logging
-    logging.info(f"DEBUG: Gmail helper using email: {sender_email}")
-    
     if not (sender_email and sender_password):
         logging.error("Gmail credentials not set.")
         return None
