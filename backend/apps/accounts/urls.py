@@ -19,6 +19,7 @@ from .views import (
     # User profile
     UserProfileView,
     UserProfileOnlyView,
+    AvatarUploadView,
     
     # Doctor
     DoctorProfileView,
@@ -68,6 +69,9 @@ urlpatterns = [
     # Get/update current user details (includes profile)
     path('me/', UserProfileView.as_view(), name='user-detail'),
     path('profile/', UserProfileOnlyView.as_view(), name='user-profile'),
+    
+    # Avatar upload (Cloudinary)
+    path('avatar/', AvatarUploadView.as_view(), name='avatar-upload'),
     
     # ==========================================================================
     # DOCTORS

@@ -27,9 +27,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-4ighhe%b+eje-+!5sz+2md0qwd%non!j1yrp^&_6p@k)p5iud&'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = []
+# Allowed hosts for deployment
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+if os.getenv('RENDER'):
+    ALLOWED_HOSTS.append('.onrender.com')
 
 
 # Application definition
@@ -49,10 +52,15 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+
+    # Cloudinary for image storage
+    'cloudinary_storage',
+    'cloudinary',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Whitenoise for static files
 
     'corsheaders.middleware.CorsMiddleware',
 
@@ -151,6 +159,34 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Media files configuration
+MEDIA_URL = '/media/'
+
+# =============================================================================
+# CLOUDINARY CONFIGURATION - All images uploaded to Cloudinary
+# =============================================================================
+# Parse CLOUDINARY_URL from environment variable
+CLOUDINARY_URL = os.getenv('CLOUDINARY_URL', '')
+
+if CLOUDINARY_URL:
+    import cloudinary
+    # cloudinary:// URL format: cloudinary://api_key:api_secret@cloud_name
+    cloudinary.config(cloudinary_url=CLOUDINARY_URL)
+    
+    # Use Cloudinary for all media file storage
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    
+    CLOUDINARY_STORAGE = {
+        'CLOUDINARY_URL': CLOUDINARY_URL,
+    }
+else:
+    import logging
+    logging.warning("⚠️  Cloudinary not configured. Image uploads will use local storage.")
+    logging.warning("📝 Please set CLOUDINARY_URL in your .env file.")
+    MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
