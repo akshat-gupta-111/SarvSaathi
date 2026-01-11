@@ -1,122 +1,494 @@
+"""
+SarvSaathi - Appointments Models
+Robust appointment booking system with proper relationships and audit trails.
+"""
+
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
+from decimal import Decimal
 
-# We must import the models from the 'accounts' app to link them
-from apps.accounts.models import Patient, DoctorProfile
 
-#
-# 1. The TimeSlot Model
-# This represents a doctor's availability, not the booking itself.
-#
+# =============================================================================
+# 1. TIME SLOT - Doctor's availability
+# =============================================================================
+
 class TimeSlot(models.Model):
+    """
+    Represents a doctor's available time slot.
+    Doctors create these to show when they're available.
+    """
+    
     MODE_CHOICES = (
-        ('IN_CLINIC', 'In-Clinic'),
-        ('ONLINE', 'Online'),
+        ('in_clinic', 'In-Clinic'),
+        ('online', 'Online'),
+        ('both', 'Both'),
     )
-
+    
+    STATUS_CHOICES = (
+        ('available', 'Available'),
+        ('booked', 'Booked'),
+        ('blocked', 'Blocked'),  # Doctor blocked this slot
+        ('cancelled', 'Cancelled'),
+    )
+    
     doctor = models.ForeignKey(
-        DoctorProfile, 
-        on_delete=models.CASCADE, 
+        'accounts.DoctorProfile',
+        on_delete=models.CASCADE,
         related_name='time_slots'
     )
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
     
-    # This 'mode' is the trigger for our "token fee" vs "full fee" logic
-    mode = models.CharField(max_length=10, choices=MODE_CHOICES, default='IN_CLINIC')
+    # --- Time Details ---
+    date = models.DateField(db_index=True)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
     
-    # When an appointment is booked, this will be set to False
-    is_available = models.BooleanField(default=True)
+    # --- Slot Details ---
+    mode = models.CharField(max_length=10, choices=MODE_CHOICES, default='in_clinic')
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='available')
+    
+    # --- Pricing (can override doctor's default) ---
+    consultation_fee = models.DecimalField(
+        max_digits=10, decimal_places=2, 
+        null=True, blank=True,
+        help_text="Leave empty to use doctor's default fee"
+    )
+    
+    # --- Timestamps ---
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        # Ensures a doctor can't create two identical time slots
-        unique_together = ('doctor', 'start_time', 'end_time')
-        ordering = ['start_time']
+        db_table = 'time_slots'
+        ordering = ['date', 'start_time']
+        # Prevent duplicate slots
+        unique_together = ('doctor', 'date', 'start_time')
+        indexes = [
+            models.Index(fields=['doctor', 'date']),
+            models.Index(fields=['status']),
+            models.Index(fields=['date', 'status']),
+        ]
 
     def __str__(self):
-        # Provides a clean, human-readable name in the admin panel
-        doctor_name = self.doctor.user.email # Fallback name
-        if self.doctor.first_name:
-            doctor_name = f"Dr. {self.doctor.first_name} {self.doctor.last_name}"
-        
-        return f"{doctor_name} - {self.start_time.strftime('%Y-%m-%d %I:%M %p')} ({self.mode})"
+        return f"{self.doctor.display_name} - {self.date} {self.start_time}-{self.end_time}"
+    
+    @property
+    def is_available(self):
+        """Check if slot is available for booking."""
+        return self.status == 'available'
+    
+    @property
+    def is_past(self):
+        """Check if slot date/time has passed."""
+        slot_datetime = timezone.make_aware(
+            timezone.datetime.combine(self.date, self.start_time)
+        )
+        return slot_datetime < timezone.now()
+    
+    @property
+    def effective_fee(self):
+        """Get the effective consultation fee for this slot."""
+        if self.consultation_fee:
+            return self.consultation_fee
+        if self.mode == 'online':
+            return self.doctor.online_consultation_fee or self.doctor.consultation_fee
+        return self.doctor.consultation_fee
+    
+    def mark_as_booked(self):
+        """Mark the slot as booked."""
+        self.status = 'booked'
+        self.save(update_fields=['status', 'updated_at'])
+    
+    def mark_as_available(self):
+        """Mark the slot as available again (e.g., after cancellation)."""
+        self.status = 'available'
+        self.save(update_fields=['status', 'updated_at'])
 
-#
-# 2. The Appointment Model
-# This is the actual booking that links a Patient to a TimeSlot.
-#
+
+# =============================================================================
+# 2. APPOINTMENT - The actual booking
+# =============================================================================
+
 class Appointment(models.Model):
-    # --- Statuses for the entire appointment lifecycle ---
+    """
+    The actual appointment booking linking a patient/family member to a time slot.
+    """
+    
     STATUS_CHOICES = (
-        ('PENDING_PAYMENT', 'Pending Payment'), # Initial state
-        ('CONFIRMED', 'Confirmed'),           # Payment complete
-        ('CANCELLED', 'Cancelled'),           # Cancelled by user or doctor
-        ('COMPLETED', 'Completed'),           # Doctor marked as finished
+        ('pending', 'Pending Payment'),
+        ('confirmed', 'Confirmed'),
+        ('checked_in', 'Checked In'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+        ('no_show', 'No Show'),
+        ('rescheduled', 'Rescheduled'),
     )
     
-    PAYMENT_CHOICES = (
-        ('UNPAID', 'Unpaid'),
-        ('PAID', 'Paid'),
-        ('REFUNDED', 'Refunded'),
+    PAYMENT_STATUS_CHOICES = (
+        ('unpaid', 'Unpaid'),
+        ('partial', 'Partially Paid'),
+        ('paid', 'Paid'),
+        ('refunded', 'Refunded'),
+        ('failed', 'Failed'),
     )
-
-    # --- Core Links ---
-    patient = models.ForeignKey(
-        Patient, 
-        on_delete=models.SET_NULL, # Don't delete appointment if patient is deleted
-        null=True, 
+    
+    PAYMENT_METHOD_CHOICES = (
+        ('paypal', 'PayPal'),
+        ('razorpay', 'Razorpay'),
+        ('cash', 'Cash'),
+        ('card', 'Card'),
+        ('upi', 'UPI'),
+        ('free', 'Free/Waived'),
+    )
+    
+    CANCELLATION_REASON_CHOICES = (
+        ('patient_request', 'Patient Request'),
+        ('doctor_unavailable', 'Doctor Unavailable'),
+        ('emergency', 'Emergency'),
+        ('rescheduled', 'Rescheduled'),
+        ('no_show', 'No Show'),
+        ('other', 'Other'),
+    )
+    
+    # --- Core Relationships ---
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='appointments',
+        help_text="The user who booked the appointment"
+    )
+    
+    family_member = models.ForeignKey(
+        'accounts.FamilyMember',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='appointments',
+        help_text="The family member this appointment is for"
+    )
+    
+    doctor = models.ForeignKey(
+        'accounts.DoctorProfile',
+        on_delete=models.SET_NULL,
+        null=True,
         related_name='appointments'
     )
+    
     time_slot = models.OneToOneField(
-        TimeSlot, 
-        on_delete=models.CASCADE, # If slot is deleted, booking is gone
+        TimeSlot,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name='appointment'
     )
     
-    # --- Status & Payment Fields ---
-    status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default='PENDING_PAYMENT'
-    )
-    payment_status = models.CharField(
-        max_length=10, choices=PAYMENT_CHOICES, default='UNPAID'
+    # --- Appointment Details ---
+    appointment_number = models.CharField(
+        max_length=20, unique=True, db_index=True,
+        help_text="Unique appointment reference number"
     )
     
-    # Store the actual amount paid (token or full fee)
-    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
+    consultation_type = models.CharField(
+        max_length=10,
+        choices=TimeSlot.MODE_CHOICES,
+        default='in_clinic'
+    )
     
-    # Store the ID from our (dummy) payment gateway
+    # --- Status ---
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pending')
+    
+    # --- Payment ---
+    payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS_CHOICES, default='unpaid')
+    payment_method = models.CharField(max_length=15, choices=PAYMENT_METHOD_CHOICES, blank=True)
+    
+    consultation_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    
+    # Payment gateway reference
+    payment_id = models.CharField(max_length=100, blank=True, null=True)
     payment_order_id = models.CharField(max_length=100, blank=True, null=True)
-
-    # --- Fields for ML: Smart Symptom Triage ---
-    patient_notes = models.TextField(
-        blank=True, null=True, help_text="Symptoms or reason for visit."
-    )
-
-    # --- Fields for ML: No-Show Prediction ---
-    created_at = models.DateTimeField(
-        auto_now_add=True, help_text="The 'booking_date' for the ML model."
-    )
-    reminder_sent = models.BooleanField(
-        default=False, help_text="The 'message_sent' for the ML model."
-    )
-
-    # --- Fields for ML: Live Wait-Time Prediction ---
-    check_in_time = models.DateTimeField(
-        null=True, blank=True, help_text="When patient hit 'I am here' in-clinic."
-    )
-    consultation_start_time = models.DateTimeField(
-        null=True, blank=True, help_text="When doctor hits 'Start' button."
-    )
-    consultation_end_time = models.DateTimeField(
-        null=True, blank=True, help_text="When doctor hits 'End' button."
-    )
     
-    # --- Other details ---
+    # --- Patient Notes & Symptoms ---
+    symptoms = models.TextField(blank=True, help_text="Patient's symptoms or reason for visit")
+    patient_notes = models.TextField(blank=True, help_text="Additional notes from patient")
+    
+    # --- Doctor's Notes (after consultation) ---
+    doctor_notes = models.TextField(blank=True, help_text="Doctor's notes/observations")
+    prescription = models.TextField(blank=True)
+    follow_up_required = models.BooleanField(default=False)
+    follow_up_date = models.DateField(null=True, blank=True)
+    
+    # --- Cancellation ---
+    cancellation_reason = models.CharField(max_length=20, choices=CANCELLATION_REASON_CHOICES, blank=True)
+    cancellation_notes = models.TextField(blank=True)
+    cancelled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='cancelled_appointments'
+    )
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    
+    # --- Consultation Timing ---
+    check_in_time = models.DateTimeField(null=True, blank=True)
+    consultation_start_time = models.DateTimeField(null=True, blank=True)
+    consultation_end_time = models.DateTimeField(null=True, blank=True)
+    
+    # --- Online Consultation ---
     video_call_link = models.URLField(blank=True, null=True)
+    video_call_id = models.CharField(max_length=100, blank=True)
     
+    # --- Reminders ---
+    reminder_sent = models.BooleanField(default=False)
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+    
+    # --- Timestamps ---
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     class Meta:
-        ordering = ['time_slot__start_time'] # Always show appointments in order
+        db_table = 'appointments'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['doctor', 'status']),
+            models.Index(fields=['appointment_number']),
+            models.Index(fields=['status']),
+            models.Index(fields=['created_at']),
+        ]
 
     def __str__(self):
-        patient_name = self.patient.first_name if self.patient else "Unknown Patient"
-        return f"Apt for {patient_name} ({self.status})"
+        return f"Appointment {self.appointment_number} - {self.status}"
+    
+    def save(self, *args, **kwargs):
+        # Generate appointment number if not set
+        if not self.appointment_number:
+            self.appointment_number = self._generate_appointment_number()
+        super().save(*args, **kwargs)
+    
+    def _generate_appointment_number(self):
+        """Generate a unique appointment number."""
+        import random
+        import string
+        prefix = 'APT'
+        timestamp = timezone.now().strftime('%Y%m%d')
+        random_suffix = ''.join(random.choices(string.digits, k=4))
+        return f"{prefix}{timestamp}{random_suffix}"
+    
+    @property
+    def patient_name(self):
+        """Get the patient's name (from family_member or user)."""
+        if self.family_member:
+            return self.family_member.full_name
+        return self.user.full_name
+    
+    @property
+    def can_cancel(self):
+        """Check if appointment can be cancelled."""
+        if self.status in ['cancelled', 'completed', 'no_show']:
+            return False
+        # Can't cancel if appointment is in less than 2 hours
+        if self.time_slot:
+            slot_datetime = timezone.make_aware(
+                timezone.datetime.combine(self.time_slot.date, self.time_slot.start_time)
+            )
+            return slot_datetime > timezone.now() + timezone.timedelta(hours=2)
+        return False
+    
+    @property
+    def can_reschedule(self):
+        """Check if appointment can be rescheduled."""
+        return self.status in ['confirmed', 'pending'] and self.can_cancel
+    
+    def cancel(self, cancelled_by_user, reason='patient_request', notes=''):
+        """Cancel the appointment."""
+        self.status = 'cancelled'
+        self.cancellation_reason = reason
+        self.cancellation_notes = notes
+        self.cancelled_by = cancelled_by_user
+        self.cancelled_at = timezone.now()
+        self.save()
+        
+        # Free up the time slot
+        if self.time_slot:
+            self.time_slot.mark_as_available()
+        
+        # Log the cancellation
+        AppointmentStatusLog.objects.create(
+            appointment=self,
+            from_status='confirmed',
+            to_status='cancelled',
+            changed_by=cancelled_by_user,
+            notes=notes
+        )
+    
+    def confirm_payment(self, payment_id, payment_method='paypal'):
+        """Confirm payment and update appointment status."""
+        self.status = 'confirmed'
+        self.payment_status = 'paid'
+        self.payment_id = payment_id
+        self.payment_method = payment_method
+        self.amount_paid = self.consultation_fee
+        self.save()
+        
+        # Mark time slot as booked
+        if self.time_slot:
+            self.time_slot.mark_as_booked()
+        
+        # Log the confirmation
+        AppointmentStatusLog.objects.create(
+            appointment=self,
+            from_status='pending',
+            to_status='confirmed',
+            notes='Payment confirmed'
+        )
+
+
+# =============================================================================
+# 3. APPOINTMENT STATUS LOG - Audit trail
+# =============================================================================
+
+class AppointmentStatusLog(models.Model):
+    """
+    Audit trail for appointment status changes.
+    Helps track the history of an appointment.
+    """
+    
+    appointment = models.ForeignKey(
+        Appointment,
+        on_delete=models.CASCADE,
+        related_name='status_logs'
+    )
+    
+    from_status = models.CharField(max_length=15)
+    to_status = models.CharField(max_length=15)
+    
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
+    
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'appointment_status_logs'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.appointment.appointment_number}: {self.from_status} → {self.to_status}"
+
+
+# =============================================================================
+# 4. REVIEW - Patient reviews for doctors
+# =============================================================================
+
+class Review(models.Model):
+    """
+    Patient reviews for doctors after completed appointments.
+    """
+    
+    appointment = models.OneToOneField(
+        Appointment,
+        on_delete=models.CASCADE,
+        related_name='review'
+    )
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reviews_given'
+    )
+    
+    doctor = models.ForeignKey(
+        'accounts.DoctorProfile',
+        on_delete=models.CASCADE,
+        related_name='reviews'
+    )
+    
+    # --- Rating (1-5 stars) ---
+    rating = models.PositiveSmallIntegerField(
+        help_text="Rating from 1 to 5"
+    )
+    
+    # --- Review Text ---
+    title = models.CharField(max_length=200, blank=True)
+    comment = models.TextField(blank=True)
+    
+    # --- Specific Ratings ---
+    wait_time_rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    bedside_manner_rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    
+    # --- Moderation ---
+    is_verified = models.BooleanField(default=True)  # Auto-verified if from completed appointment
+    is_visible = models.BooleanField(default=True)
+    
+    # --- Doctor Response ---
+    doctor_response = models.TextField(blank=True)
+    doctor_response_at = models.DateTimeField(null=True, blank=True)
+    
+    # --- Timestamps ---
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'reviews'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['doctor', 'rating']),
+        ]
+
+    def __str__(self):
+        return f"Review for {self.doctor.display_name} - {self.rating}/5"
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Update doctor's average rating
+        self._update_doctor_rating()
+    
+    def _update_doctor_rating(self):
+        """Update the doctor's average rating and review count."""
+        from django.db.models import Avg, Count
+        stats = Review.objects.filter(
+            doctor=self.doctor,
+            is_visible=True
+        ).aggregate(
+            avg_rating=Avg('rating'),
+            total_reviews=Count('id')
+        )
+        
+        self.doctor.average_rating = stats['avg_rating'] or 0
+        self.doctor.total_reviews = stats['total_reviews'] or 0
+        self.doctor.save(update_fields=['average_rating', 'total_reviews'])
+
+
+# =============================================================================
+# 5. FAVORITE DOCTOR - Saved doctors
+# =============================================================================
+
+class FavoriteDoctor(models.Model):
+    """
+    User's favorite/saved doctors for quick access.
+    """
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='favorite_doctors'
+    )
+    
+    doctor = models.ForeignKey(
+        'accounts.DoctorProfile',
+        on_delete=models.CASCADE,
+        related_name='favorited_by'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'favorite_doctors'
+        unique_together = ('user', 'doctor')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.email} - {self.doctor.display_name}"

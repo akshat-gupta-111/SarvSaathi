@@ -1,0 +1,745 @@
+/* Search Doctors Page Styles */
+
+.search-doctors-page {
+  min-height: 100vh;
+  background: var(--bg-color);
+}
+
+/* Search Header */
+.search-header {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  padding: 40px 20px 60px;
+}
+
+.search-header-content {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.search-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.search-header p {
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 24px;
+}
+
+/* Main Content */
+.search-content {
+  max-width: 1400px;
+  margin: -30px auto 0;
+  padding: 0 20px 40px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  position: relative;
+}
+
+/* Filters Sidebar */
+.filters-sidebar {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  height: fit-content;
+  position: sticky;
+  top: 90px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.filters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.filters-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.close-filters {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: #6B7280;
+  cursor: pointer;
+}
+
+/* Filter Group */
+.filter-group {
+  margin-bottom: 24px;
+}
+
+.filter-group h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 12px;
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Custom Radio */
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-size: 0.9rem;
+  color: #4B5563;
+}
+
+.filter-option:hover {
+  background: #F3F4F6;
+}
+
+.filter-option input {
+  display: none;
+}
+
+.checkmark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #D1D5DB;
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.filter-option input:checked ~ .checkmark {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+}
+
+.checkmark::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: white;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.filter-option input:checked ~ .checkmark::after {
+  opacity: 1;
+}
+
+/* Rating Options */
+.rating-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rating-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  background: #F3F4F6;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #4B5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rating-btn:hover {
+  border-color: var(--primary-color);
+}
+
+.rating-btn.active {
+  background: #EEF2FF;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.rating-btn .star {
+  color: #F59E0B;
+}
+
+/* Checkbox Filter */
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #4B5563;
+}
+
+.filter-checkbox input {
+  display: none;
+}
+
+.checkbox-mark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #D1D5DB;
+  border-radius: 6px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.filter-checkbox input:checked ~ .checkbox-mark {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.checkbox-mark::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  opacity: 0;
+}
+
+.filter-checkbox input:checked ~ .checkbox-mark::after {
+  opacity: 1;
+}
+
+/* Results Section */
+.results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 16px 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.results-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.filter-toggle {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #F3F4F6;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  color: #4B5563;
+  cursor: pointer;
+}
+
+.filter-badge {
+  background: var(--primary-color);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+}
+
+.results-count {
+  color: #6B7280;
+  font-size: 0.95rem;
+}
+
+.results-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sort-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-dropdown label {
+  color: #6B7280;
+  font-size: 0.9rem;
+}
+
+.sort-dropdown select {
+  padding: 8px 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.view-toggle {
+  display: flex;
+  background: #F3F4F6;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.view-toggle button {
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-toggle button.active {
+  background: white;
+  color: var(--primary-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Active Filters */
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #EEF2FF;
+  color: var(--primary-color);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.filter-tag svg {
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* Doctors Grid */
+.doctors-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.doctors-grid.grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.doctors-grid.list {
+  grid-template-columns: 1fr;
+}
+
+/* Doctor Card */
+.doctor-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.doctor-card:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.doctor-card.list {
+  padding: 24px;
+}
+
+.card-left {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.doctor-card .doctor-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doctor-card.list .doctor-avatar {
+  width: 100px;
+  height: 100px;
+  font-size: 1.8rem;
+}
+
+.verified-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 24px;
+  height: 24px;
+  background: #10B981;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  border: 2px solid white;
+}
+
+.card-middle {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-middle h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.card-middle .specialty {
+  color: var(--primary-color);
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.card-middle .experience {
+  color: #6B7280;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.card-meta .rating,
+.card-meta .location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #4B5563;
+}
+
+.card-meta .star-icon {
+  color: #F59E0B;
+}
+
+.card-meta .reviews {
+  color: #9CA3AF;
+}
+
+.available-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #D1FAE5;
+  color: #059669;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.card-right .favorite-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #F3F4F6;
+  border: none;
+  color: #9CA3AF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.card-right .favorite-btn:hover {
+  background: #FEE2E2;
+  color: #EF4444;
+}
+
+.fee-info {
+  text-align: right;
+}
+
+.fee-amount {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-color);
+  display: block;
+}
+
+.fee-label {
+  font-size: 0.8rem;
+  color: #9CA3AF;
+}
+
+.card-right .book-btn {
+  padding: 10px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.card-right .book-btn:hover {
+  background: var(--primary-hover);
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+}
+
+.no-results-icon {
+  font-size: 3rem;
+  color: #D1D5DB;
+  margin-bottom: 16px;
+}
+
+.no-results h3 {
+  font-size: 1.25rem;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.no-results p {
+  color: #6B7280;
+  margin-bottom: 20px;
+}
+
+.btn-primary {
+  padding: 12px 24px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Skeleton Loading */
+.doctor-card-skeleton {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+}
+
+.skeleton-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-content {
+  flex: 1;
+}
+
+.skeleton-line {
+  height: 16px;
+  background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+  background-size: 200% 100%;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-line.short {
+  width: 60%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Filter Overlay */
+.filter-overlay {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .doctors-grid.grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 992px) {
+  .search-content {
+    grid-template-columns: 1fr;
+  }
+
+  .filters-sidebar {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 300px;
+    height: 100vh;
+    z-index: 1001;
+    border-radius: 0;
+    transition: left 0.3s ease;
+    overflow-y: auto;
+  }
+
+  .filters-sidebar.show {
+    left: 0;
+  }
+
+  .close-filters {
+    display: block;
+  }
+
+  .filter-toggle {
+    display: flex;
+  }
+
+  .filter-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-header {
+    padding: 30px 16px 50px;
+  }
+
+  .search-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .results-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .results-info {
+    justify-content: space-between;
+  }
+
+  .results-actions {
+    justify-content: space-between;
+  }
+
+  .doctor-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .card-left {
+    display: flex;
+    justify-content: center;
+  }
+
+  .card-middle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .card-meta {
+    justify-content: center;
+  }
+
+  .card-right {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding-top: 16px;
+    border-top: 1px solid #E5E7EB;
+  }
+
+  .card-right .favorite-btn {
+    order: 3;
+  }
+
+  .fee-info {
+    text-align: left;
+  }
+}

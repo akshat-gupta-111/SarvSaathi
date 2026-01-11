@@ -1,0 +1,929 @@
+/* Emergency Page Styles */
+
+.emergency-page {
+  min-height: 100vh;
+  background: #FEF2F2;
+}
+
+/* Emergency Header */
+.emergency-header {
+  background: linear-gradient(135deg, #DC2626, #991B1B);
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.header-content h1 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.header-content p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+}
+
+/* SOS Section */
+.sos-section {
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+  margin-top: -20px;
+}
+
+.sos-section.active {
+  background: rgba(220, 38, 38, 0.1);
+  animation: pulse-bg 1s ease-in-out infinite;
+}
+
+@keyframes pulse-bg {
+  0%, 100% { background: rgba(220, 38, 38, 0.1); }
+  50% { background: rgba(220, 38, 38, 0.2); }
+}
+
+/* SOS Button */
+.sos-button {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #EF4444, #DC2626);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 40px rgba(220, 38, 38, 0.4);
+  transition: all 0.3s ease;
+}
+
+.sos-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 15px 50px rgba(220, 38, 38, 0.5);
+}
+
+.sos-button:active {
+  transform: scale(0.98);
+}
+
+.sos-pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  animation: sos-pulse 2s ease-out infinite;
+}
+
+.sos-pulse.delay {
+  animation-delay: 1s;
+}
+
+@keyframes sos-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.sos-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+}
+
+.sos-icon {
+  font-size: 3rem;
+  margin-bottom: 8px;
+}
+
+.sos-text {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: 4px;
+}
+
+.sos-subtext {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+/* SOS Countdown */
+.sos-countdown {
+  text-align: center;
+}
+
+.countdown-circle {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #EF4444, #DC2626);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  animation: countdown-pulse 1s ease-in-out infinite;
+  box-shadow: 0 10px 40px rgba(220, 38, 38, 0.4);
+}
+
+@keyframes countdown-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.countdown-number {
+  font-size: 5rem;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+}
+
+.countdown-text {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.countdown-message {
+  color: #DC2626;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.cancel-sos-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: white;
+  border: 2px solid #DC2626;
+  border-radius: 12px;
+  color: #DC2626;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-sos-btn:hover {
+  background: #DC2626;
+  color: white;
+}
+
+/* Tabs */
+.emergency-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 20px 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  background: white;
+  border: 2px solid #FECACA;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+  border-color: #DC2626;
+  color: #DC2626;
+}
+
+.tab-btn.active {
+  background: #DC2626;
+  border-color: #DC2626;
+  color: white;
+}
+
+/* Content */
+.emergency-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+}
+
+/* Quick Call Tab */
+.quick-call-tab h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 20px;
+}
+
+.helplines-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.helpline-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  background: white;
+  border-radius: 16px;
+  border: 2px solid #F3F4F6;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.helpline-card:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.helpline-icon {
+  font-size: 2rem;
+}
+
+.helpline-info {
+  flex: 1;
+}
+
+.helpline-name {
+  display: block;
+  font-size: 0.9rem;
+  color: #6B7280;
+  margin-bottom: 2px;
+}
+
+.helpline-number {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.call-icon {
+  font-size: 1.3rem;
+  color: var(--accent-color);
+}
+
+/* Location Card */
+.location-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.location-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.location-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #F3F4F6;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+  background: #E5E7EB;
+  color: var(--primary-color);
+}
+
+.location-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.coordinates {
+  font-size: 1rem;
+  color: #4B5563;
+}
+
+.share-location-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.share-location-btn:hover {
+  background: var(--primary-hover);
+}
+
+.no-location {
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+/* First Aid Section */
+.first-aid-section {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.first-aid-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 16px;
+}
+
+.tips-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.tip-card {
+  padding: 16px;
+  background: #FEF2F2;
+  border-radius: 12px;
+  border: 1px solid #FECACA;
+}
+
+.tip-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.tip-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 6px;
+}
+
+.tip-card p {
+  font-size: 0.85rem;
+  color: #6B7280;
+  line-height: 1.5;
+}
+
+/* Hospitals Tab */
+.hospitals-tab h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.hospitals-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.hospitals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hospital-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.hospital-left .hospital-icon {
+  font-size: 2.5rem;
+}
+
+.hospital-info {
+  flex: 1;
+}
+
+.hospital-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.hospital-name-row h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.emergency-badge {
+  padding: 4px 10px;
+  background: #D1FAE5;
+  color: #059669;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.hospital-address {
+  color: #6B7280;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.hospital-meta {
+  display: flex;
+  gap: 16px;
+}
+
+.hospital-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #4B5563;
+}
+
+.hospital-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.call-hospital-btn, .directions-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.call-hospital-btn {
+  background: #DC2626;
+  color: white;
+}
+
+.call-hospital-btn:hover {
+  background: #B91C1C;
+}
+
+.directions-btn {
+  background: #EEF2FF;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.directions-btn:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* Contacts Tab */
+.contacts-tab h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.contacts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.add-contact-btn, .add-first-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-contact-btn:hover, .add-first-btn:hover {
+  background: var(--primary-hover);
+}
+
+.contacts-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #EEF2FF;
+  border-radius: 10px;
+  color: var(--primary-color);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.no-contacts {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+}
+
+.no-contacts-icon {
+  font-size: 4rem;
+  color: #D1D5DB;
+  margin-bottom: 16px;
+}
+
+.no-contacts h3 {
+  font-size: 1.25rem;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.no-contacts p {
+  color: #6B7280;
+  margin-bottom: 20px;
+}
+
+.contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contact-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.contact-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contact-info {
+  flex: 1;
+}
+
+.contact-info h4 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.contact-phone {
+  color: #6B7280;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.contact-relation {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #F3F4F6;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #6B7280;
+}
+
+.contact-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.quick-call-btn, .delete-contact-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.quick-call-btn {
+  background: #D1FAE5;
+  border: none;
+  color: #059669;
+}
+
+.quick-call-btn:hover {
+  background: #10B981;
+  color: white;
+}
+
+.delete-contact-btn {
+  background: #FEE2E2;
+  border: none;
+  color: #DC2626;
+}
+
+.delete-contact-btn:hover {
+  background: #DC2626;
+  color: white;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.add-contact-modal {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 450px;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.modal-header h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.close-modal {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #F3F4F6;
+  border: none;
+  color: #6B7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.close-modal:hover {
+  background: #E5E7EB;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-body .form-group {
+  margin-bottom: 20px;
+}
+
+.modal-body .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.modal-body label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #4B5563;
+  margin-bottom: 8px;
+}
+
+.modal-body input,
+.modal-body select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #E5E7EB;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: var(--text-color);
+  transition: border-color 0.3s ease;
+}
+
+.modal-body input:focus,
+.modal-body select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 20px 24px;
+  background: #F9FAFB;
+}
+
+.cancel-btn {
+  flex: 1;
+  padding: 12px;
+  background: white;
+  border: 2px solid #E5E7EB;
+  border-radius: 10px;
+  font-weight: 500;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background: #F3F4F6;
+}
+
+.save-contact-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--primary-color);
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.save-contact-btn:hover {
+  background: var(--primary-hover);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .sos-button {
+    width: 160px;
+    height: 160px;
+  }
+
+  .sos-icon {
+    font-size: 2.5rem;
+  }
+
+  .sos-text {
+    font-size: 2rem;
+  }
+
+  .countdown-circle {
+    width: 160px;
+    height: 160px;
+  }
+
+  .countdown-number {
+    font-size: 4rem;
+  }
+
+  .emergency-tabs {
+    flex-direction: column;
+  }
+
+  .helplines-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tips-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hospital-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .hospital-name-row {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .hospital-meta {
+    justify-content: center;
+  }
+
+  .hospital-actions {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .call-hospital-btn, .directions-btn {
+    flex: 1;
+  }
+
+  .location-info {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .contacts-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .contact-card {
+    flex-wrap: wrap;
+  }
+
+  .contact-actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 12px;
+    border-top: 1px solid #E5E7EB;
+  }
+}
+
+@media (max-width: 480px) {
+  .helplines-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .helpline-card {
+    padding: 14px;
+  }
+
+  .helpline-number {
+    font-size: 1.2rem;
+  }
+}

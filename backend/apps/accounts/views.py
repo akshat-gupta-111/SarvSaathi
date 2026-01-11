@@ -1,114 +1,399 @@
-# backend/apps/accounts/views.py
-# We need IsAuthenticated to "lock" our doors
-from rest_framework.permissions import AllowAny, IsAuthenticated 
-from rest_framework import generics
+"""
+SarvSaathi - Accounts Views
+Clean, organized views for user management.
+"""
+
+from rest_framework import generics, status
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound
-from .models import CustomUser, Patient, DoctorProfile # Import new models
+from django.conf import settings
+import logging
+import os
+
+from .models import (
+    CustomUser, UserProfile, DoctorProfile, 
+    FamilyMember, EmergencyContact, MedicalRecord, OTP
+)
 from .serializers import (
-    UserRegistrationSerializer,
-    PatientSerializer,       # Import new serializer
-    DoctorProfileSerializer  # Import new serializer
+    UserRegistrationSerializer, RegisterWithOTPSerializer,
+    SendOTPSerializer, VerifyOTPSerializer,
+    UserDetailSerializer, UserProfileSerializer,
+    DoctorProfileSerializer, DoctorListSerializer,
+    FamilyMemberSerializer, FamilyMemberListSerializer,
+    EmergencyContactSerializer, MedicalRecordSerializer,
 )
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import generics
-from .models import CustomUser
-from .serializers import UserRegistrationSerializer # Import our new serializer
+logger = logging.getLogger(__name__)
 
-# You already have this "Health Check" view
+
+# =============================================================================
+# OTP UTILITIES
+# =============================================================================
+
+def send_otp_email(email, otp_code):
+    """Send OTP via email using Gmail SMTP."""
+    import smtplib
+    import ssl
+    from email.message import EmailMessage
+
+    sender_email = os.getenv("SENDER_EMAIL")
+    sender_password = os.getenv("SENDER_APP_PASSWORD")
+
+    if not (sender_email and sender_password):
+        logger.warning("Gmail credentials not configured. OTP email not sent.")
+        return False
+
+    msg = EmailMessage()
+    msg["Subject"] = "SarvSaathi - Your OTP Code"
+    msg["From"] = sender_email
+    msg["To"] = email
+    msg.set_content(f"""
+Hello,
+
+Your OTP code for SarvSaathi is: {otp_code}
+
+This code will expire in 10 minutes.
+
+If you didn't request this code, please ignore this email.
+
+Best regards,
+SarvSaathi Team
+    """)
+
+    try:
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
+            smtp.login(sender_email, sender_password)
+            smtp.send_message(msg)
+        logger.info(f"OTP email sent to {email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send OTP email: {e}")
+        return False
+
+
+def send_otp_sms(phone_number, otp_code):
+    """Send OTP via SMS using Twilio."""
+    try:
+        from twilio.rest import Client
+    except ImportError:
+        logger.warning("Twilio not installed. OTP SMS not sent.")
+        return False
+
+    sid = os.getenv("TWILIO_ACCOUNT_SID")
+    token = os.getenv("TWILIO_AUTH_TOKEN")
+    from_num = os.getenv("TWILIO_FROM_NUMBER")
+
+    if not (sid and token and from_num):
+        logger.warning("Twilio credentials not configured. OTP SMS not sent.")
+        return False
+
+    try:
+        client = Client(sid, token)
+        client.messages.create(
+            body=f"Your SarvSaathi OTP code is: {otp_code}. Valid for 10 minutes.",
+            from_=from_num,
+            to=phone_number
+        )
+        logger.info(f"OTP SMS sent to {phone_number}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send OTP SMS: {e}")
+        return False
+
+
+# =============================================================================
+# HEALTH CHECK
+# =============================================================================
+
 class HealthCheckView(APIView):
-    permission_classes = [AllowAny] 
-    def get(self, request, *args, **kwargs):
-        return Response({"message": "SarvSaathi API is live and healthy!"})
+    """API health check endpoint."""
+    permission_classes = [AllowAny]
 
-# --- ADD THIS NEW VIEW ---
+    def get(self, request):
+        return Response({
+            "status": "healthy",
+            "message": "SarvSaathi API is live and healthy!",
+            "version": "2.0"
+        })
+
+
+# =============================================================================
+# AUTHENTICATION VIEWS
+# =============================================================================
+
 class RegisterView(generics.CreateAPIView):
-    """
-    This is the /register endpoint.
-    It's a "Create-Only" view, so it only accepts POST requests.
-    """
+    """User registration without OTP."""
     queryset = CustomUser.objects.all()
-    
-    # This is critical. It makes the view PUBLIC.
-    # We are overriding our default (IsAuthenticated)
-    # so that new users can actually sign up.
-    permission_classes = (AllowAny,)
-    
-    # Tell this view to use the serializer we just made
+    permission_classes = [AllowAny]
     serializer_class = UserRegistrationSerializer
 
-# backend/apps/accounts/views.py
 
-# --- UPDATE YOUR IMPORTS ---
+class RegisterWithOTPView(generics.CreateAPIView):
+    """User registration with OTP verification."""
+    queryset = CustomUser.objects.all()
+    permission_classes = [AllowAny]
+    serializer_class = RegisterWithOTPSerializer
 
 
-# ... (HealthCheckView and RegisterView are already here) ...
+class SendOTPView(APIView):
+    """Send OTP to email or phone number."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = SendOTPSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data.get('email')
+        phone_number = serializer.validated_data.get('phone_number')
+        otp_type = serializer.validated_data.get('otp_type', 'email')
+
+        # Generate OTP
+        otp = OTP.generate_otp(
+            email=email,
+            phone_number=phone_number,
+            otp_type=otp_type
+        )
+
+        # Send OTP
+        sent = False
+        if email:
+            sent = send_otp_email(email, otp.otp_code)
+        elif phone_number:
+            sent = send_otp_sms(phone_number, otp.otp_code)
+
+        response_data = {
+            "message": "OTP sent successfully" if sent else "OTP generated (check logs for delivery status)",
+            "expires_in_minutes": 10,
+        }
+
+        # In development mode, include OTP for testing
+        if settings.DEBUG:
+            response_data["otp_code"] = otp.otp_code
+            response_data["debug_note"] = "OTP included for testing only."
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
-# --- ADD THESE NEW VIEWS ---
+class VerifyOTPView(APIView):
+    """Verify OTP code."""
+    permission_classes = [AllowAny]
 
-# --- FOR PATIENTS ---
-class PatientListView(generics.ListCreateAPIView):
-    """
-    This is the "locked door" for a patient's family list.
-    - GET: Lists all patients belonging to the logged-in user.
-    - POST: Creates a new patient (e.g., "Child") for the logged-in user.
-    """
-    # This is the "lock". Only authenticated users can access this.
+    def post(self, request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data.get('email')
+        phone_number = serializer.validated_data.get('phone_number')
+        otp_code = serializer.validated_data.get('otp_code')
+        otp_type = serializer.validated_data.get('otp_type', 'email')
+
+        try:
+            filters = {'otp_type': otp_type, 'is_verified': False}
+            if email:
+                filters['email'] = email
+            if phone_number:
+                filters['phone_number'] = phone_number
+
+            otp = OTP.objects.filter(**filters).latest('created_at')
+
+            if otp.verify(otp_code):
+                return Response({
+                    "message": "OTP verified successfully",
+                    "verified": True
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "message": "Invalid or expired OTP",
+                    "verified": False
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except OTP.DoesNotExist:
+            return Response({
+                "message": "No OTP found. Please request a new one.",
+                "verified": False
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+# =============================================================================
+# USER PROFILE VIEWS
+# =============================================================================
+
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    """Get or update the logged-in user's profile."""
     permission_classes = [IsAuthenticated]
-    serializer_class = PatientSerializer
-    
-    def get_queryset(self):
-        # This is the "key". It filters the list to show *only*
-        # the Patient records that belong to the logged-in user.
-        return Patient.objects.filter(account_holder=self.request.user)
-        
-    def perform_create(self, serializer):
-        # When creating a new patient, automatically set the
-        # account_holder to the currently logged-in user.
-        serializer.save(account_holder=self.request.user)
+    serializer_class = UserDetailSerializer
 
-class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    This is the "locked door" for a *single* patient record.
-    - GET /patients/1/: Gets the details for patient #1
-    - PUT /patients/1/: Updates patient #1 (This is "Complete Profile")
-    - DELETE /patients/1/: Deletes patient #1
-    """
+    def get_object(self):
+        return self.request.user
+
+
+class UserProfileOnlyView(generics.RetrieveUpdateAPIView):
+    """Get or update the extended profile only."""
     permission_classes = [IsAuthenticated]
-    serializer_class = PatientSerializer
-    
-    def get_queryset(self):
-        # A user can ONLY see/edit/delete *their own* patient records.
-        # This is a critical security feature.
-        return Patient.objects.filter(account_holder=self.request.user)
+    serializer_class = UserProfileSerializer
 
-# --- FOR DOCTORS ---
+    def get_object(self):
+        return self.request.user.profile
+
+
+# =============================================================================
+# DOCTOR VIEWS
+# =============================================================================
+
 class DoctorProfileView(generics.RetrieveUpdateAPIView):
-    """
-    This is the "locked door" for a doctor's own profile.
-    - GET: Gets the logged-in doctor's profile
-    - PUT: Updates the logged-in doctor's profile
-    """
+    """Get or update the logged-in doctor's profile."""
     permission_classes = [IsAuthenticated]
     serializer_class = DoctorProfileSerializer
-    
+
     def get_object(self):
-        # This is the "key". It finds the *one* profile
-        # linked to the logged-in doctor.
+        if self.request.user.user_type != 'doctor':
+            raise NotFound("Doctor profile not available for this account type.")
         try:
             return self.request.user.doctor_profile
         except DoctorProfile.DoesNotExist:
-            raise NotFound(detail="Doctor profile is not set up yet. Please complete your profile from the onboarding flow or contact support.")
-        except AttributeError:
-            raise NotFound(detail="Doctor profile is not available for this account.")
+            raise NotFound("Doctor profile not set up yet.")
 
 
 class VerifiedDoctorListView(generics.ListAPIView):
-    """Public listing of verified doctor profiles for the consumer portal."""
+    """Public listing of verified doctors."""
     permission_classes = [AllowAny]
-    serializer_class = DoctorProfileSerializer
+    serializer_class = DoctorListSerializer
 
     def get_queryset(self):
-        return DoctorProfile.objects.filter(is_verified=True)
+        queryset = DoctorProfile.objects.filter(is_verified=True).select_related('user')
+        
+        # Filter by specialty
+        specialty = self.request.query_params.get('specialty')
+        if specialty:
+            queryset = queryset.filter(specialty__icontains=specialty)
+        
+        # Filter by fee range
+        min_fee = self.request.query_params.get('min_fee')
+        max_fee = self.request.query_params.get('max_fee')
+        if min_fee:
+            queryset = queryset.filter(consultation_fee__gte=min_fee)
+        if max_fee:
+            queryset = queryset.filter(consultation_fee__lte=max_fee)
+        
+        # Filter by experience
+        min_exp = self.request.query_params.get('min_experience')
+        if min_exp:
+            queryset = queryset.filter(years_of_experience__gte=min_exp)
+        
+        # Sort
+        sort_by = self.request.query_params.get('sort', '-average_rating')
+        valid_sorts = ['average_rating', '-average_rating', 'consultation_fee', '-consultation_fee', 'years_of_experience', '-years_of_experience']
+        if sort_by in valid_sorts:
+            queryset = queryset.order_by(sort_by)
+        
+        return queryset
+
+
+class DoctorDetailView(generics.RetrieveAPIView):
+    """Public view for a single doctor's profile."""
+    permission_classes = [AllowAny]
+    serializer_class = DoctorProfileSerializer
+    queryset = DoctorProfile.objects.filter(is_verified=True).select_related('user')
+
+
+# =============================================================================
+# FAMILY MEMBER VIEWS
+# =============================================================================
+
+class FamilyMemberListCreateView(generics.ListCreateAPIView):
+    """List and create family members for logged-in user."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = FamilyMemberSerializer
+
+    def get_queryset(self):
+        return FamilyMember.objects.filter(user=self.request.user, is_active=True)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class FamilyMemberDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Get, update, or delete a family member."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = FamilyMemberSerializer
+
+    def get_queryset(self):
+        return FamilyMember.objects.filter(user=self.request.user)
+
+    def perform_destroy(self, instance):
+        # Soft delete - don't actually delete
+        instance.is_active = False
+        instance.save()
+
+
+class FamilyMemberListOnlyView(generics.ListAPIView):
+    """Simplified list for dropdowns."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = FamilyMemberListSerializer
+
+    def get_queryset(self):
+        return FamilyMember.objects.filter(user=self.request.user, is_active=True)
+
+
+# =============================================================================
+# EMERGENCY CONTACT VIEWS
+# =============================================================================
+
+class EmergencyContactListCreateView(generics.ListCreateAPIView):
+    """List and create emergency contacts."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = EmergencyContactSerializer
+
+    def get_queryset(self):
+        return EmergencyContact.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class EmergencyContactDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Get, update, or delete an emergency contact."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = EmergencyContactSerializer
+
+    def get_queryset(self):
+        return EmergencyContact.objects.filter(user=self.request.user)
+
+
+# =============================================================================
+# MEDICAL RECORD VIEWS
+# =============================================================================
+
+class MedicalRecordListCreateView(generics.ListCreateAPIView):
+    """List and create medical records."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = MedicalRecordSerializer
+
+    def get_queryset(self):
+        return MedicalRecord.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class MedicalRecordDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Get, update, or delete a medical record."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = MedicalRecordSerializer
+
+    def get_queryset(self):
+        return MedicalRecord.objects.filter(user=self.request.user)
+
+
+# =============================================================================
+# BACKWARD COMPATIBILITY - Aliases for old views
+# =============================================================================
+
+# These maintain backward compatibility with existing URLs
+PatientListView = FamilyMemberListCreateView
+PatientDetailView = FamilyMemberDetailView

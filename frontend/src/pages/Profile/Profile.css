@@ -1,0 +1,812 @@
+/* Profile Page Styles */
+
+.profile-page {
+  min-height: 100vh;
+  background: var(--bg-color);
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Loading State */
+.profile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #E5E7EB;
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Sidebar */
+.profile-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* User Card */
+.user-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.user-avatar-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.user-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  font-size: 2.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-edit-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #E5E7EB;
+  color: #6B7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.avatar-edit-btn:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.user-card h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.user-email {
+  color: #6B7280;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+.user-type-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.user-type-badge.patient {
+  background: #EEF2FF;
+  color: var(--primary-color);
+}
+
+.user-type-badge.doctor {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+.user-card .verified-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 6px 14px;
+  background: #10B981;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Profile Navigation */
+.profile-nav {
+  background: white;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #4B5563;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-item:hover {
+  background: #F3F4F6;
+  color: var(--primary-color);
+}
+
+.nav-item.active {
+  background: #EEF2FF;
+  color: var(--primary-color);
+}
+
+.nav-item svg:first-child {
+  font-size: 1.2rem;
+}
+
+.nav-arrow {
+  margin-left: auto;
+  font-size: 1rem;
+  opacity: 0.5;
+}
+
+/* Logout Button */
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  background: #FEE2E2;
+  border: none;
+  border-radius: 12px;
+  color: #EF4444;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+  background: #EF4444;
+  color: white;
+}
+
+/* Main Content */
+.profile-main {
+  background: white;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Content Header */
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.content-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.edit-btn, .book-new-btn, .upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.edit-btn:hover, .book-new-btn:hover, .upload-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.cancel-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #F3F4F6;
+  color: #6B7280;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background: #E5E7EB;
+}
+
+.save-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #10B981;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner.small {
+  width: 18px;
+  height: 18px;
+  border: 2px solid transparent;
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Profile Section */
+.profile-section {
+  margin-bottom: 32px;
+}
+
+.profile-section:last-child {
+  margin-bottom: 0;
+}
+
+.profile-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #F3F4F6;
+}
+
+.profile-section h3 svg {
+  color: var(--primary-color);
+}
+
+/* Form Grid */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group.full-width {
+  grid-column: span 2;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #4B5563;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 12px 16px;
+  border: 2px solid #E5E7EB;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: var(--text-color);
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.form-group input:disabled,
+.form-group select:disabled,
+.form-group textarea:disabled {
+  background: #F9FAFB;
+  color: #6B7280;
+  cursor: not-allowed;
+}
+
+.form-group input.disabled {
+  background: #F3F4F6;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Appointments Content */
+.appointments-content {
+  min-height: 400px;
+}
+
+.appointment-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 8px;
+  background: #F3F4F6;
+  border-radius: 12px;
+}
+
+.apt-tab {
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.apt-tab:hover {
+  color: var(--primary-color);
+}
+
+.apt-tab.active {
+  background: white;
+  color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Appointments List */
+.appointments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.appointment-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #F9FAFB;
+  border-radius: 16px;
+  border-left: 4px solid #D1D5DB;
+  transition: all 0.3s ease;
+}
+
+.appointment-card.upcoming {
+  border-left-color: var(--primary-color);
+  background: #EEF2FF;
+}
+
+.appointment-card.completed {
+  border-left-color: #10B981;
+}
+
+.appointment-card.cancelled {
+  border-left-color: #EF4444;
+}
+
+.apt-left .apt-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.apt-middle {
+  flex: 1;
+}
+
+.apt-middle h4 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.apt-specialty {
+  color: var(--primary-color);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.apt-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.apt-details span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #6B7280;
+}
+
+.apt-type {
+  padding: 4px 10px;
+  background: white;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.apt-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.apt-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.apt-status.upcoming {
+  background: #EEF2FF;
+  color: var(--primary-color);
+}
+
+.apt-status.completed {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+.apt-status.cancelled {
+  background: #FEE2E2;
+  color: #EF4444;
+}
+
+.apt-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.reschedule-btn, .cancel-apt-btn, .review-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.reschedule-btn {
+  background: white;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+}
+
+.reschedule-btn:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+.cancel-apt-btn {
+  background: white;
+  border: 1px solid #EF4444;
+  color: #EF4444;
+}
+
+.cancel-apt-btn:hover {
+  background: #EF4444;
+  color: white;
+}
+
+.review-btn {
+  background: var(--primary-color);
+  border: none;
+  color: white;
+}
+
+.review-btn:hover {
+  background: var(--primary-hover);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  color: #D1D5DB;
+  margin-bottom: 20px;
+}
+
+.empty-state h3 {
+  font-size: 1.25rem;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  color: #6B7280;
+  margin-bottom: 24px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+/* Settings Content */
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #F9FAFB;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.setting-item:hover {
+  background: #EEF2FF;
+}
+
+.setting-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.setting-icon {
+  font-size: 1.3rem;
+  color: var(--primary-color);
+}
+
+.setting-info h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 2px;
+}
+
+.setting-info p {
+  font-size: 0.85rem;
+  color: #6B7280;
+}
+
+/* Danger Zone */
+.danger-zone {
+  margin-top: 40px;
+  padding: 20px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 12px;
+}
+
+.danger-zone h3 {
+  font-size: 1rem;
+  color: #EF4444;
+  margin-bottom: 16px;
+}
+
+.delete-account-btn {
+  padding: 12px 24px;
+  background: #EF4444;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.delete-account-btn:hover {
+  background: #DC2626;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .profile-page {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-sidebar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .user-card {
+    grid-column: span 2;
+  }
+
+  .logout-btn {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 16px;
+  }
+
+  .profile-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .user-card {
+    grid-column: span 1;
+  }
+
+  .logout-btn {
+    grid-column: span 1;
+  }
+
+  .profile-main {
+    padding: 20px;
+  }
+
+  .content-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .content-header h2 {
+    text-align: center;
+  }
+
+  .edit-btn, .book-new-btn, .upload-btn {
+    justify-content: center;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-group.full-width {
+    grid-column: span 1;
+  }
+
+  .appointment-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .apt-right {
+    align-items: center;
+    width: 100%;
+    padding-top: 16px;
+    border-top: 1px solid #E5E7EB;
+  }
+
+  .apt-details {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .edit-actions {
+    flex-direction: column;
+  }
+
+  .appointment-tabs {
+    overflow-x: auto;
+  }
+
+  .apt-tab {
+    white-space: nowrap;
+  }
+
+  .apt-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .reschedule-btn, .cancel-apt-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

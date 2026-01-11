@@ -1,13 +1,13 @@
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
 from datetime import timedelta
 import urllib.parse
 import logging
 from .notifications import send_emergency_sms, send_emergency_email, send_emergency_whatsapp
-from apps.accounts.models import DoctorProfile, Patient
+from apps.accounts.models import DoctorProfile, FamilyMember, EmergencyContact
 from apps.appointments.models import TimeSlot, Appointment
 from .models import EmergencyRequest
 from .serializers import (
@@ -17,7 +17,7 @@ from .serializers import (
 )
 from .utils import haversine, TRIAGE_TO_SPECIALTY
 
-from .notifications import send_emergency_sms, send_emergency_whatsapp
+logger = logging.getLogger(__name__)
 
 # --- View 1: Step 1 (Patient) -> Find Specialists ---
 
@@ -37,13 +37,16 @@ class FindSpecialistView(generics.GenericAPIView):
         
         data = serializer.validated_data
         
-        # 1. Find the user's "self" patient profile
+        # 1. Find the user's "self" family member profile
         try:
-            patient = request.user.patients.get(relationship='self')
-        except Patient.DoesNotExist:
-            return Response(
-                {"error": "No 'self' patient profile found. Please complete your profile."}, 
-                status=status.HTTP_400_BAD_REQUEST
+            patient = request.user.family_members.get(relationship='self')
+        except FamilyMember.DoesNotExist:
+            # Auto-create if missing
+            patient = FamilyMember.objects.create(
+                user=request.user,
+                relationship='self',
+                first_name=request.user.first_name or 'Self',
+                last_name=request.user.last_name or ''
             )
 
         # 2. Create the EmergencyRequest log
@@ -62,18 +65,18 @@ class FindSpecialistView(generics.GenericAPIView):
         # 4. Find all verified doctors with that specialty and location
         doctors = DoctorProfile.objects.filter(
             is_verified=True, 
-            specialty__iexact=specialty,
-            latitude__isnull=False,
-            longitude__isnull=False
+            specialty__icontains=specialty,
+            clinic_latitude__isnull=False,
+            clinic_longitude__isnull=False
         )
 
         # 5. Calculate distance for each doctor
         user_coords = (data['user_lat'], data['user_lng'])
         doctor_list = []
         for doc in doctors:
-            doc_coords = (doc.latitude, doc.longitude)
+            doc_coords = (float(doc.clinic_latitude), float(doc.clinic_longitude))
             distance = haversine(user_coords[0], user_coords[1], doc_coords[0], doc_coords[1])
-            doc.distance_km = round(distance, 2) # Add distance as a temporary attribute
+            doc.distance_km = round(distance, 2)
             doctor_list.append(doc)
             
         # 6. Sort by distance
@@ -82,14 +85,11 @@ class FindSpecialistView(generics.GenericAPIView):
         # 7. Get the top 3
         top_doctors = doctor_list[:3]
 
-        # 8. --- THIS IS THE FIX ---
-        # We now pass the raw `top_doctors` *objects* to the output_data.
-        # The TriageOutputSerializer will handle serializing them.
+        # 8. Return serialized data
         output_data = {
             "log_id": log_entry.id,
-            "doctors": top_doctors # <-- No more .data here!
+            "doctors": top_doctors
         }
-        # --- END FIX ---
         
         return Response(TriageOutputSerializer(output_data).data, status=status.HTTP_200_OK)
 
@@ -118,7 +118,7 @@ class RequestDoctorView(generics.GenericAPIView):
 
         # 1. Get the log and doctor
         try:
-            log_entry = EmergencyRequest.objects.get(id=log_id, patient__account_holder=request.user)
+            log_entry = EmergencyRequest.objects.get(id=log_id, patient__user=request.user)
             doctor = DoctorProfile.objects.get(id=doctor_id, is_verified=True)
         except (EmergencyRequest.DoesNotExist, DoctorProfile.DoesNotExist):
             return Response({"error": "Invalid request or doctor ID."}, status=status.HTTP_404_NOT_FOUND)
@@ -131,17 +131,22 @@ class RequestDoctorView(generics.GenericAPIView):
         now = timezone.now()
         special_slot = TimeSlot.objects.create(
             doctor=doctor,
-            start_time=now,
-            end_time=now + timedelta(minutes=30),
-            mode='IN_CLINIC',
-            is_available=False
+            date=now.date(),
+            start_time=now.time(),
+            end_time=(now + timedelta(minutes=30)).time(),
+            mode='in_clinic',
+            status='booked'
         )
         special_appointment = Appointment.objects.create(
-            patient=log_entry.patient,
+            user=request.user,
+            family_member=log_entry.patient,
+            doctor=doctor,
             time_slot=special_slot,
-            status='CONFIRMED',
-            payment_status='UNPAID',
-            patient_notes=f"EMERGENCY: {log_entry.triage_category}\n--\n{log_entry.patient_notes}",
+            status='confirmed',
+            payment_status='unpaid',
+            symptoms=f"EMERGENCY: {log_entry.triage_category}",
+            notes_for_doctor=log_entry.patient_notes,
+            consultation_fee=0.00,
             amount_paid=0.00
         )
 
@@ -151,45 +156,153 @@ class RequestDoctorView(generics.GenericAPIView):
         log_entry.linked_appointment = special_appointment
         log_entry.save()
 
-        # 5. --- Send Notifications to Doctor (FIXED) ---
+        # 5. --- Send Notifications to Doctor ---
         patient = log_entry.patient
         patient_name = f"{patient.first_name} {patient.last_name}"
         message_body = (
             f"EMERGENCY ALERT: {patient_name} is en route to your clinic.\n"
             f"Triage: {log_entry.triage_category}\n"
             f"Notes: {log_entry.patient_notes}\n"
-            f"Patient Phone: {patient.phone_number}"
+            f"Patient Phone: {patient.phone_number or request.user.phone_number}"
         )
         
-        # We wrap notifications in a try/except block.
         try:
-            logging.info("Attempting to send emergency notifications...")
+            logger.info("Attempting to send emergency notifications...")
             
-            # Call 1: Send SMS (using Twilio)
-            send_emergency_sms(doctor.phone_number, message_body)
+            if doctor.clinic_phone:
+                send_emergency_sms(doctor.clinic_phone, message_body)
             
-            # Call 2: Send Email (using Gmail)
-            send_emergency_email(doctor.user.email, message_body)
+            if doctor.user.email:
+                send_emergency_email(doctor.user.email, message_body)
 
-            # Call 3: Send WhatsApp (using Twilio)
-            send_emergency_whatsapp(doctor.phone_number, message_body)
+            if doctor.clinic_phone:
+                send_emergency_whatsapp(doctor.clinic_phone, message_body)
 
-            logging.info("Notification dispatch complete.")
+            logger.info("Notification dispatch complete.")
         except Exception as e:
-            logging.error(f"CRITICAL: Notification dispatch failed for Appointment {special_appointment.id}: {e}")
+            logger.error(f"Notification dispatch failed: {e}")
 
         # 6. --- Prepare Response for Patient ---
-        destination = f"{doctor.latitude},{doctor.longitude}"
-        params = {"api": "1", "destination": destination}
-        # Fixed the markdown link bug from the previous file
-        directions_link = "[https://www.google.com/maps/dir/](https://www.google.com/maps/dir/)?" + urllib.parse.urlencode(params)
+        if doctor.clinic_latitude and doctor.clinic_longitude:
+            destination = f"{doctor.clinic_latitude},{doctor.clinic_longitude}"
+            params = {"api": "1", "destination": destination}
+            directions_link = "https://www.google.com/maps/dir/?" + urllib.parse.urlencode(params)
+        else:
+            directions_link = ""
 
         output_data = {
             "appointment_id": special_appointment.id,
-            "doctor_name": f"Dr. {doctor.first_name} {doctor.last_name}",
+            "doctor_name": f"Dr. {doctor.user.first_name} {doctor.user.last_name}",
             "clinic_address": doctor.clinic_address,
             "get_directions_link": directions_link
         }
 
         return Response(RequestDoctorOutputSerializer(output_data).data, status=status.HTTP_201_CREATED)
+
+
+# --- View 3: Trigger SOS Alert ---
+
+class TriggerSOSView(APIView):
+    """
+    Trigger an SOS alert - sends emergency notifications to all contacts.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        lat = request.data.get('latitude')
+        lng = request.data.get('longitude')
+        message = request.data.get('message', 'Emergency! Need help!')
+
+        # Get user's emergency contacts
+        contacts = EmergencyContact.objects.filter(user=user)
+        
+        if not contacts.exists():
+            return Response({
+                "warning": "No emergency contacts configured. Please add emergency contacts in your profile.",
+                "contacts_notified": 0
+            }, status=status.HTTP_200_OK)
+
+        # Build emergency message
+        location_link = ""
+        if lat and lng:
+            location_link = f"https://www.google.com/maps?q={lat},{lng}"
+        
+        user_name = user.get_full_name() or user.email
+        emergency_message = (
+            f"🚨 EMERGENCY SOS from {user_name}!\n\n"
+            f"Message: {message}\n"
+        )
+        if location_link:
+            emergency_message += f"Location: {location_link}\n"
+        emergency_message += f"Contact: {user.phone_number or user.email}"
+
+        # Send to all contacts
+        notified_count = 0
+        for contact in contacts:
+            try:
+                if contact.phone_number:
+                    send_emergency_sms(contact.phone_number, emergency_message)
+                    notified_count += 1
+                if contact.email:
+                    send_emergency_email(contact.email, emergency_message)
+            except Exception as e:
+                logger.error(f"Failed to notify {contact.name}: {e}")
+
+        return Response({
+            "message": "SOS alert sent successfully",
+            "contacts_notified": notified_count
+        }, status=status.HTTP_200_OK)
+
+
+# --- View 4: Get Nearby Hospitals (Mock) ---
+
+class NearbyHospitalsView(APIView):
+    """
+    Get nearby hospitals based on location.
+    This is a mock implementation - integrate with Google Places API for production.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        lat = request.query_params.get('lat')
+        lng = request.query_params.get('lng')
+
+        if not lat or not lng:
+            return Response({
+                "error": "Latitude and longitude are required"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Mock hospital data
+        hospitals = [
+            {
+                "name": "City General Hospital",
+                "address": "123 Main Street, New Delhi",
+                "phone": "+91-11-12345678",
+                "distance": "2.3 km",
+                "emergency": True,
+                "rating": 4.5
+            },
+            {
+                "name": "Apollo Hospital",
+                "address": "456 Health Avenue, New Delhi",
+                "phone": "+91-11-87654321",
+                "distance": "3.8 km",
+                "emergency": True,
+                "rating": 4.8
+            },
+            {
+                "name": "Max Super Specialty Hospital",
+                "address": "789 Care Road, New Delhi",
+                "phone": "+91-11-11223344",
+                "distance": "5.1 km",
+                "emergency": True,
+                "rating": 4.6
+            }
+        ]
+
+        return Response({
+            "hospitals": hospitals,
+            "total": len(hospitals)
+        }, status=status.HTTP_200_OK)
 
