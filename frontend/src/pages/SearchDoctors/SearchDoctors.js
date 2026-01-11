@@ -107,10 +107,10 @@ const SearchDoctors = () => {
       setLoading(true);
       try {
         const response = await doctorAPI.getVerifiedDoctors();
-        setDoctors(response.data);
+        setDoctors(response.data || []);
       } catch (error) {
         console.error('Error fetching doctors:', error);
-        setDoctors(mockDoctors);
+        setDoctors([]);
       } finally {
         setLoading(false);
       }
@@ -120,7 +120,7 @@ const SearchDoctors = () => {
   }, []);
 
   // Filter doctors
-  const filteredDoctors = (doctors.length > 0 ? doctors : mockDoctors).filter(doc => {
+  const filteredDoctors = doctors.filter(doc => {
     if (filters.specialty && filters.specialty !== 'All Specialties' && doc.specialty !== filters.specialty) return false;
     if (filters.availability === 'today' && !doc.available_today) return false;
     

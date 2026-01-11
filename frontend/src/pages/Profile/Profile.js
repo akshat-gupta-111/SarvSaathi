@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { patientAPI, doctorAPI } from '../../api';
+import { patientAPI, doctorAPI, appointmentsAPI } from '../../api';
 import { toast } from 'react-toastify';
 import {
   FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiEdit2,
@@ -49,7 +49,23 @@ const Profile = () => {
 
   useEffect(() => {
     fetchProfile();
+    fetchAppointments();
   }, []);
+
+  const fetchAppointments = async () => {
+    try {
+      if (user?.user_type === 'doctor') {
+        const response = await appointmentsAPI.getDoctorAppointments();
+        setAppointments(response.data || []);
+      } else {
+        const response = await appointmentsAPI.getMyAppointments();
+        setAppointments(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      setAppointments([]);
+    }
+  };
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -150,37 +166,6 @@ const Profile = () => {
     navigate('/login');
     toast.success('Logged out successfully');
   };
-
-  // Mock appointments
-  const mockAppointments = [
-    {
-      id: 1,
-      doctor_name: 'Dr. Priya Sharma',
-      specialty: 'Cardiology',
-      date: '2026-01-15',
-      time: '10:00 AM',
-      status: 'upcoming',
-      type: 'In-Clinic'
-    },
-    {
-      id: 2,
-      doctor_name: 'Dr. Rajesh Patel',
-      specialty: 'Dermatology',
-      date: '2026-01-10',
-      time: '02:30 PM',
-      status: 'completed',
-      type: 'Video Call'
-    },
-    {
-      id: 3,
-      doctor_name: 'Dr. Anita Gupta',
-      specialty: 'Pediatrics',
-      date: '2025-12-28',
-      time: '11:00 AM',
-      status: 'completed',
-      type: 'In-Clinic'
-    }
-  ];
 
   const menuItems = [
     { id: 'profile', icon: FiUser, label: 'My Profile' },
@@ -551,40 +536,50 @@ const Profile = () => {
 
             {/* Appointments List */}
             <div className="appointments-list">
-              {mockAppointments.map(apt => (
-                <div key={apt.id} className={`appointment-card ${apt.status}`}>
-                  <div className="apt-left">
-                    <div className="apt-avatar">
-                      {apt.doctor_name.split(' ')[1]?.charAt(0) || 'D'}
-                    </div>
-                  </div>
-                  <div className="apt-middle">
-                    <h4>{apt.doctor_name}</h4>
-                    <p className="apt-specialty">{apt.specialty}</p>
-                    <div className="apt-details">
-                      <span><FiCalendar /> {apt.date}</span>
-                      <span><FiClock /> {apt.time}</span>
-                      <span className="apt-type">{apt.type}</span>
-                    </div>
-                  </div>
-                  <div className="apt-right">
-                    <span className={`apt-status ${apt.status}`}>
-                      {apt.status === 'upcoming' && <FiClock />}
-                      {apt.status === 'completed' && <FiCheck />}
-                      {apt.status}
-                    </span>
-                    {apt.status === 'upcoming' && (
-                      <div className="apt-actions">
-                        <button className="reschedule-btn">Reschedule</button>
-                        <button className="cancel-apt-btn">Cancel</button>
-                      </div>
-                    )}
-                    {apt.status === 'completed' && (
-                      <button className="review-btn">Write Review</button>
-                    )}
-                  </div>
+              {appointments.length === 0 ? (
+                <div className="no-appointments">
+                  <FiCalendar size={48} />
+                  <h3>No Appointments</h3>
+                  <p>You don't have any appointments yet.</p>
+                  <Link to="/search-doctors" className="book-now-btn">Find a Doctor</Link>
                 </div>
-              ))}
+              ) : (
+                appointments.map(apt => (
+                  <div key={apt.id} className={`appointment-card ${apt.status}`}>
+                    <div className="apt-left">
+                      <div className="apt-avatar">
+                        {apt.doctor_name?.split(' ')[1]?.charAt(0) || apt.time_slot?.doctor?.user?.first_name?.charAt(0) || 'D'}
+                      </div>
+                    </div>
+                    <div className="apt-middle">
+                      <h4>{apt.doctor_name || `Dr. ${apt.time_slot?.doctor?.user?.first_name || ''} ${apt.time_slot?.doctor?.user?.last_name || ''}`}</h4>
+                      <p className="apt-specialty">{apt.specialty || apt.time_slot?.doctor?.specialty || 'Specialist'}</p>
+                      <div className="apt-details">
+                        <span><FiCalendar /> {apt.date || apt.time_slot?.date}</span>
+                        <span><FiClock /> {apt.time || apt.time_slot?.start_time}</span>
+                        <span className="apt-type">{apt.type || 'In-Clinic'}</span>
+                      </div>
+                    </div>
+                    <div className="apt-right">
+                      <span className={`apt-status ${apt.status}`}>
+                        {apt.status === 'upcoming' && <FiClock />}
+                        {apt.status === 'confirmed' && <FiClock />}
+                        {apt.status === 'completed' && <FiCheck />}
+                        {apt.status}
+                      </span>
+                      {(apt.status === 'upcoming' || apt.status === 'confirmed') && (
+                        <div className="apt-actions">
+                          <button className="reschedule-btn">Reschedule</button>
+                          <button className="cancel-apt-btn">Cancel</button>
+                        </div>
+                      )}
+                      {apt.status === 'completed' && (
+                        <button className="review-btn">Write Review</button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}

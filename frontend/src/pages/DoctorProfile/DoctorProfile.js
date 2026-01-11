@@ -133,8 +133,9 @@ const DoctorProfile = () => {
         setDoctor(response.data);
       } catch (error) {
         console.error('Error fetching doctor:', error);
-        // Use mock data if API fails
-        setDoctor(mockDoctor);
+        // Navigate back if doctor not found
+        toast.error('Doctor not found');
+        navigate('/search-doctors');
       } finally {
         setLoading(false);
       }
@@ -157,7 +158,7 @@ const DoctorProfile = () => {
     fetchTimeSlots();
     // Set first date as default
     setSelectedDate(availableDates[0].full);
-  }, [id]);
+  }, [id, navigate]);
 
   const handleBookAppointment = async () => {
     if (!isAuthenticated) {
@@ -210,7 +211,16 @@ const DoctorProfile = () => {
     );
   }
 
-  const displayDoctor = doctor || mockDoctor;
+  if (!doctor) {
+    return (
+      <div className="doctor-profile-loading">
+        <p>Doctor not found</p>
+        <button onClick={() => navigate('/search-doctors')}>Back to Search</button>
+      </div>
+    );
+  }
+
+  const displayDoctor = doctor;
 
   return (
     <div className="doctor-profile-page">
