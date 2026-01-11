@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { mlAPI } from '../../api';
 import { toast } from 'react-toastify';
 import {
-  FiActivity, FiSearch, FiAlertCircle, FiCheckCircle,
+  FiActivity, FiAlertCircle, FiCheckCircle,
   FiSend, FiRefreshCw, FiInfo, FiAlertTriangle, FiHeart,
   FiThermometer, FiClock
 } from 'react-icons/fi';

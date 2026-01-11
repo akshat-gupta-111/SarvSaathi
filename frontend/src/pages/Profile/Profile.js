@@ -4,10 +4,10 @@ import { useAuth } from '../../context/AuthContext';
 import { patientAPI, doctorAPI, appointmentsAPI } from '../../api';
 import { toast } from 'react-toastify';
 import {
-  FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiEdit2,
+  FiUser, FiMapPin, FiCalendar, FiEdit2,
   FiCamera, FiShield, FiSettings, FiHeart, FiClock, FiFileText,
   FiLock, FiBell, FiLogOut, FiChevronRight, FiCheck, FiX,
-  FiSave, FiAward, FiBriefcase, FiDollarSign
+  FiSave, FiBriefcase
 } from 'react-icons/fi';
 import './Profile.css';
 
@@ -50,6 +50,7 @@ const Profile = () => {
   useEffect(() => {
     fetchProfile();
     fetchAppointments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAppointments = async () => {

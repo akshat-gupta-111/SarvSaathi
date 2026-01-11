@@ -31,7 +31,7 @@ class SpecialistResultSerializer(serializers.ModelSerializer):
         Combines the doctor's first and last name.
         'obj' is the DoctorProfile instance.
         """
-        return f"Dr. {obj.first_name} {obj.last_name}"
+        return f"Dr. {obj.user.first_name} {obj.user.last_name}"
 
 
 class TriageOutputSerializer(serializers.Serializer):

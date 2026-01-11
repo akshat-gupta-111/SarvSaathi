@@ -4,7 +4,7 @@ import { doctorAPI } from '../../api';
 import SearchBar from '../../components/SearchBar';
 import {
   FiSearch, FiFilter, FiMapPin, FiStar, FiClock, FiShield,
-  FiHeart, FiChevronDown, FiX, FiGrid, FiList, FiSliders
+  FiHeart, FiX, FiGrid, FiList, FiSliders
 } from 'react-icons/fi';
 import './SearchDoctors.css';
 
@@ -27,58 +27,6 @@ const SearchDoctors = () => {
 
   // Sort
   const [sortBy, setSortBy] = useState('relevance');
-
-  // Mock doctors data
-  const mockDoctors = [
-    {
-      id: 1, first_name: 'Priya', last_name: 'Sharma', specialty: 'Cardiology',
-      consultation_fee: 500, clinic_address: 'Apollo Hospital, Delhi',
-      is_verified: true, rating: 4.8, reviews: 245, experience: 15,
-      available_today: true
-    },
-    {
-      id: 2, first_name: 'Rajesh', last_name: 'Patel', specialty: 'Dermatology',
-      consultation_fee: 400, clinic_address: 'Max Healthcare, Mumbai',
-      is_verified: true, rating: 4.6, reviews: 189, experience: 12,
-      available_today: true
-    },
-    {
-      id: 3, first_name: 'Anita', last_name: 'Gupta', specialty: 'Pediatrics',
-      consultation_fee: 350, clinic_address: 'Fortis Hospital, Bangalore',
-      is_verified: true, rating: 4.9, reviews: 312, experience: 18,
-      available_today: false
-    },
-    {
-      id: 4, first_name: 'Vikram', last_name: 'Singh', specialty: 'Orthopedics',
-      consultation_fee: 600, clinic_address: 'AIIMS, Delhi',
-      is_verified: true, rating: 4.7, reviews: 278, experience: 20,
-      available_today: true
-    },
-    {
-      id: 5, first_name: 'Meera', last_name: 'Reddy', specialty: 'Gynecology',
-      consultation_fee: 450, clinic_address: 'Rainbow Hospital, Hyderabad',
-      is_verified: true, rating: 4.5, reviews: 156, experience: 10,
-      available_today: true
-    },
-    {
-      id: 6, first_name: 'Sanjay', last_name: 'Kumar', specialty: 'Neurology',
-      consultation_fee: 700, clinic_address: 'Medanta, Gurugram',
-      is_verified: true, rating: 4.8, reviews: 198, experience: 22,
-      available_today: false
-    },
-    {
-      id: 7, first_name: 'Kavita', last_name: 'Joshi', specialty: 'General Physician',
-      consultation_fee: 300, clinic_address: 'City Clinic, Pune',
-      is_verified: false, rating: 4.3, reviews: 87, experience: 8,
-      available_today: true
-    },
-    {
-      id: 8, first_name: 'Arjun', last_name: 'Nair', specialty: 'Psychiatry',
-      consultation_fee: 550, clinic_address: 'NIMHANS, Bangalore',
-      is_verified: true, rating: 4.6, reviews: 134, experience: 14,
-      available_today: true
-    }
-  ];
 
   const specialties = [
     'All Specialties', 'Cardiology', 'Dermatology', 'Pediatrics', 'Orthopedics',
