@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 // Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
 import Login from './pages/Auth/Login';
@@ -82,10 +83,11 @@ const Layout = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Layout>
-          <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <Layout>
+            <Routes>
             {/* Public Routes */}
             <Route path="/login" element={
               <PublicRoute>
@@ -152,6 +154,7 @@ function App() {
         </Layout>
       </Router>
     </AuthProvider>
+  </ErrorBoundary>
   );
 }
 
