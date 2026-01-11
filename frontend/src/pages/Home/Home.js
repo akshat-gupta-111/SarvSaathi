@@ -9,6 +9,54 @@ import {
 } from 'react-icons/fi';
 import './Home.css';
 
+// Mock data for demo (defined outside component to avoid dependency issues)
+const mockDoctors = [
+  {
+    id: 1,
+    first_name: 'Priya',
+    last_name: 'Sharma',
+    specialty: 'Cardiology',
+    consultation_fee: 500,
+    clinic_address: 'Apollo Hospital, Delhi',
+    is_verified: true,
+    rating: 4.8,
+    reviews: 245,
+  },
+  {
+    id: 2,
+    first_name: 'Rajesh',
+    last_name: 'Patel',
+    specialty: 'Dermatology',
+    consultation_fee: 400,
+    clinic_address: 'Max Healthcare, Mumbai',
+    is_verified: true,
+    rating: 4.6,
+    reviews: 189,
+  },
+  {
+    id: 3,
+    first_name: 'Anita',
+    last_name: 'Gupta',
+    specialty: 'Pediatrics',
+    consultation_fee: 350,
+    clinic_address: 'Fortis Hospital, Bangalore',
+    is_verified: true,
+    rating: 4.9,
+    reviews: 312,
+  },
+  {
+    id: 4,
+    first_name: 'Vikram',
+    last_name: 'Singh',
+    specialty: 'Orthopedics',
+    consultation_fee: 600,
+    clinic_address: 'AIIMS, Delhi',
+    is_verified: true,
+    rating: 4.7,
+    reviews: 278,
+  },
+];
+
 const Home = () => {
   const { user, isAuthenticated } = useAuth();
   const [doctors, setDoctors] = useState([]);
@@ -19,7 +67,7 @@ const Home = () => {
     const fetchDoctors = async () => {
       try {
         const response = await doctorAPI.getVerifiedDoctors();
-        setDoctors(response.data);
+        setDoctors(response.data || []);
       } catch (error) {
         console.error('Error fetching doctors:', error);
         // Use mock data if API fails
@@ -31,54 +79,6 @@ const Home = () => {
 
     fetchDoctors();
   }, []);
-
-  // Mock data for demo
-  const mockDoctors = [
-    {
-      id: 1,
-      first_name: 'Priya',
-      last_name: 'Sharma',
-      specialty: 'Cardiology',
-      consultation_fee: 500,
-      clinic_address: 'Apollo Hospital, Delhi',
-      is_verified: true,
-      rating: 4.8,
-      reviews: 245,
-    },
-    {
-      id: 2,
-      first_name: 'Rajesh',
-      last_name: 'Patel',
-      specialty: 'Dermatology',
-      consultation_fee: 400,
-      clinic_address: 'Max Healthcare, Mumbai',
-      is_verified: true,
-      rating: 4.6,
-      reviews: 189,
-    },
-    {
-      id: 3,
-      first_name: 'Anita',
-      last_name: 'Gupta',
-      specialty: 'Pediatrics',
-      consultation_fee: 350,
-      clinic_address: 'Fortis Hospital, Bangalore',
-      is_verified: true,
-      rating: 4.9,
-      reviews: 312,
-    },
-    {
-      id: 4,
-      first_name: 'Vikram',
-      last_name: 'Singh',
-      specialty: 'Orthopedics',
-      consultation_fee: 600,
-      clinic_address: 'AIIMS, Delhi',
-      is_verified: true,
-      rating: 4.7,
-      reviews: 278,
-    },
-  ];
 
   const displayDoctors = doctors.length > 0 ? doctors : mockDoctors;
 

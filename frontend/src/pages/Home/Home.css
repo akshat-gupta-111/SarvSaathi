@@ -2,7 +2,7 @@
 
 .home-page {
   min-height: 100vh;
-  background: var(--bg-color);
+  background: var(--bg-secondary);
 }
 
 /* Hero Section */

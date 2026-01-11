@@ -71,7 +71,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     
     @admin.display(boolean=True, description='Complete')
     def is_profile_complete(self, obj):
-        return obj.is_complete
+        return obj.user.is_profile_complete
 
 
 # =============================================================================

@@ -8,7 +8,7 @@ import './Auth.css';
 const VerifyOTP = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { register, sendOTP, verifyOTP } = useAuth();
+  const { register, sendOTP } = useAuth();
   
   // Get data from registration
   const { email, phone, password, userType, verificationMethod, debugOTP } = location.state || {};

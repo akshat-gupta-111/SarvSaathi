@@ -391,6 +391,89 @@ class MedicalRecordDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 # =============================================================================
+# AVATAR UPLOAD VIEW
+# =============================================================================
+
+class AvatarUploadView(APIView):
+    """Upload or update user avatar to Cloudinary."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from .cloudinary_utils import upload_avatar
+        
+        if 'avatar' not in request.FILES:
+            return Response(
+                {"error": "No avatar image provided. Please upload an image file."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        avatar_file = request.FILES['avatar']
+        
+        # Validate file type
+        allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+        if avatar_file.content_type not in allowed_types:
+            return Response(
+                {"error": f"Invalid file type. Allowed types: {', '.join(allowed_types)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate file size (max 5MB)
+        max_size = 5 * 1024 * 1024  # 5MB in bytes
+        if avatar_file.size > max_size:
+            return Response(
+                {"error": "File too large. Maximum size is 5MB."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Upload to Cloudinary
+        avatar_url = upload_avatar(avatar_file, request.user.id)
+        
+        if not avatar_url:
+            return Response(
+                {"error": "Failed to upload avatar. Please check Cloudinary configuration."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        # Update user profile with new avatar URL
+        profile = request.user.profile
+        profile.avatar_url = avatar_url
+        profile.save()
+        
+        logger.info(f"Avatar uploaded for user {request.user.email}")
+        
+        return Response({
+            "message": "Avatar uploaded successfully",
+            "avatar_url": avatar_url
+        }, status=status.HTTP_200_OK)
+
+    def delete(self, request):
+        """Remove user avatar."""
+        from .cloudinary_utils import delete_image_from_cloudinary
+        
+        profile = request.user.profile
+        
+        if not profile.avatar_url:
+            return Response(
+                {"message": "No avatar to remove"},
+                status=status.HTTP_200_OK
+            )
+        
+        # Try to delete from Cloudinary
+        public_id = f"sarvsaathi/avatars/user_{request.user.id}_avatar"
+        delete_image_from_cloudinary(public_id)
+        
+        # Clear avatar URL from profile
+        profile.avatar_url = None
+        profile.save()
+        
+        logger.info(f"Avatar removed for user {request.user.email}")
+        
+        return Response({
+            "message": "Avatar removed successfully"
+        }, status=status.HTTP_200_OK)
+
+
+# =============================================================================
 # BACKWARD COMPATIBILITY - Aliases for old views
 # =============================================================================
 

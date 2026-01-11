@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { emergencyAPI } from '../../api';
 import { toast } from 'react-toastify';
 import {
   FiAlertTriangle, FiPhone, FiMapPin, FiNavigation, FiPlus,
-  FiEdit2, FiTrash2, FiX, FiCheck, FiShare2, FiClock,
+  FiTrash2, FiX, FiCheck, FiShare2, FiClock,
   FiHeart, FiShield, FiAlertCircle, FiPhoneCall, FiUsers
 } from 'react-icons/fi';
 import './Emergency.css';
 
 const Emergency = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('sos');
   const [sosActive, setSosActive] = useState(false);
   const [countdown, setCountdown] = useState(5);
@@ -32,7 +31,7 @@ const Emergency = () => {
     { name: 'Child Helpline', number: '1098', icon: '👶', color: '#10B981' },
   ];
 
-  // Mock nearby hospitals
+  // Mock nearby hospitals (TODO: integrate with real hospital API)
   const mockHospitals = [
     { id: 1, name: 'Apollo Hospital', distance: '1.2 km', time: '5 min', phone: '+91 11 2692 5858', address: 'Sarita Vihar, Delhi', hasEmergency: true },
     { id: 2, name: 'Max Healthcare', distance: '2.5 km', time: '8 min', phone: '+91 11 2651 5050', address: 'Saket, Delhi', hasEmergency: true },
@@ -40,17 +39,26 @@ const Emergency = () => {
     { id: 4, name: 'AIIMS', distance: '5.2 km', time: '18 min', phone: '+91 11 2658 8500', address: 'Ansari Nagar, Delhi', hasEmergency: true },
   ];
 
-  // Mock emergency contacts
-  const mockContacts = [
-    { id: 1, name: 'Mom', phone: '+91 98765 43210', relationship: 'Mother' },
-    { id: 2, name: 'Dad', phone: '+91 98765 43211', relationship: 'Father' },
-  ];
-
   useEffect(() => {
-    setContacts(mockContacts);
+    const fetchEmergencyContacts = async () => {
+      if (isAuthenticated) {
+        try {
+          const response = await emergencyAPI.getEmergencyContacts();
+          setContacts(response.data || []);
+        } catch (error) {
+          console.error('Error fetching emergency contacts:', error);
+          setContacts([]);
+        }
+      } else {
+        setContacts([]);
+      }
+    };
+    
+    fetchEmergencyContacts();
     setNearbyHospitals(mockHospitals);
     getCurrentLocation();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   // Countdown for SOS
   useEffect(() => {
@@ -61,6 +69,7 @@ const Emergency = () => {
       triggerEmergency();
     }
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sosActive, countdown]);
 
   const getCurrentLocation = () => {

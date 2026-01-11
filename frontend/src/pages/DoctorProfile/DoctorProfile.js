@@ -6,14 +6,14 @@ import { toast } from 'react-toastify';
 import {
   FiArrowLeft, FiStar, FiMapPin, FiClock, FiPhone, FiMail,
   FiCalendar, FiAward, FiShield, FiHeart, FiShare2, FiCheck,
-  FiChevronRight, FiUser, FiMessageSquare, FiVideo, FiBriefcase
+  FiChevronRight, FiUser, FiVideo, FiBriefcase
 } from 'react-icons/fi';
 import './DoctorProfile.css';
 
 const DoctorProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,50 +82,6 @@ const DoctorProfile = () => {
 
   const timeSlots = getGroupedSlots();
 
-  // Mock doctor data
-  const mockDoctor = {
-    id: id,
-    first_name: 'Priya',
-    last_name: 'Sharma',
-    email: 'dr.priya@example.com',
-    phone: '+91 98765 43210',
-    specialty: 'Cardiology',
-    qualification: 'MBBS, MD (Cardiology), FACC',
-    experience: 15,
-    consultation_fee: 500,
-    clinic_address: 'Apollo Hospital, Sarita Vihar, New Delhi - 110076',
-    clinic_name: 'Apollo Heart Centre',
-    bio: 'Dr. Priya Sharma is a renowned cardiologist with over 15 years of experience in treating complex cardiac conditions. She specializes in interventional cardiology and has performed over 5000+ successful procedures.',
-    is_verified: true,
-    rating: 4.8,
-    reviews: 245,
-    patients_treated: 5000,
-    languages: ['English', 'Hindi', 'Punjabi'],
-    working_hours: {
-      weekdays: '9:00 AM - 8:00 PM',
-      saturday: '9:00 AM - 2:00 PM',
-      sunday: 'Closed'
-    },
-    services: [
-      'ECG & Echo',
-      'Angiography',
-      'Angioplasty',
-      'Pacemaker Implantation',
-      'Heart Failure Management',
-      'Preventive Cardiology'
-    ],
-    education: [
-      { degree: 'MBBS', institution: 'AIIMS, New Delhi', year: '2005' },
-      { degree: 'MD (Cardiology)', institution: 'PGIMER, Chandigarh', year: '2009' },
-      { degree: 'FACC', institution: 'American College of Cardiology', year: '2012' }
-    ],
-    awards: [
-      'Best Cardiologist Award 2023 - Indian Medical Association',
-      'Excellence in Interventional Cardiology 2021',
-      'Healthcare Hero Award 2020'
-    ]
-  };
-
   useEffect(() => {
     const fetchDoctor = async () => {
       try {
@@ -133,8 +89,9 @@ const DoctorProfile = () => {
         setDoctor(response.data);
       } catch (error) {
         console.error('Error fetching doctor:', error);
-        // Use mock data if API fails
-        setDoctor(mockDoctor);
+        // Navigate back if doctor not found
+        toast.error('Doctor not found');
+        navigate('/search-doctors');
       } finally {
         setLoading(false);
       }
@@ -157,7 +114,8 @@ const DoctorProfile = () => {
     fetchTimeSlots();
     // Set first date as default
     setSelectedDate(availableDates[0].full);
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, navigate]);
 
   const handleBookAppointment = async () => {
     if (!isAuthenticated) {
@@ -210,7 +168,16 @@ const DoctorProfile = () => {
     );
   }
 
-  const displayDoctor = doctor || mockDoctor;
+  if (!doctor) {
+    return (
+      <div className="doctor-profile-loading">
+        <p>Doctor not found</p>
+        <button onClick={() => navigate('/search-doctors')}>Back to Search</button>
+      </div>
+    );
+  }
+
+  const displayDoctor = doctor;
 
   return (
     <div className="doctor-profile-page">

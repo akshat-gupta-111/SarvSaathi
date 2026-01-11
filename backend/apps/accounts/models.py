@@ -78,6 +78,14 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             return f"{self.first_name} {self.last_name}"
         return self.email.split('@')[0]
     
+    def get_full_name(self):
+        """Returns the user's full name (method version for compatibility)."""
+        return self.full_name
+    
+    def get_short_name(self):
+        """Returns the user's first name."""
+        return self.first_name or self.email.split('@')[0]
+    
     @property
     def age(self):
         """Calculate age from date of birth."""

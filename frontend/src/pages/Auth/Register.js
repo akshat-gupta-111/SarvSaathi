@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-import { FiMail, FiLock, FiEye, FiEyeOff, FiUser, FiPhone } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiPhone } from 'react-icons/fi';
 import './Auth.css';
 
 const Register = () => {
