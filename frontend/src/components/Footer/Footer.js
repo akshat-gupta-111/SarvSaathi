@@ -27,18 +27,18 @@ const Footer = () => {
               providing quality healthcare services at your fingertips.
             </p>
             <div className="social-links">
-              <a href="#" className="social-link" aria-label="Facebook">
+              <button className="social-link" aria-label="Facebook">
                 <FiFacebook />
-              </a>
-              <a href="#" className="social-link" aria-label="Twitter">
+              </button>
+              <button className="social-link" aria-label="Twitter">
                 <FiTwitter />
-              </a>
-              <a href="#" className="social-link" aria-label="Instagram">
+              </button>
+              <button className="social-link" aria-label="Instagram">
                 <FiInstagram />
-              </a>
-              <a href="#" className="social-link" aria-label="LinkedIn">
+              </button>
+              <button className="social-link" aria-label="LinkedIn">
                 <FiLinkedin />
-              </a>
+              </button>
             </div>
           </div>
 
@@ -61,8 +61,8 @@ const Footer = () => {
               <li><Link to="/doctors">Book Appointment</Link></li>
               <li><Link to="/symptom-checker">AI Health Check</Link></li>
               <li><Link to="/emergency">Emergency Services</Link></li>
-              <li><a href="#">Video Consultation</a></li>
-              <li><a href="#">Health Records</a></li>
+              <li><Link to="/doctors">Video Consultation</Link></li>
+              <li><Link to="/profile">Health Records</Link></li>
             </ul>
           </div>
 
@@ -97,9 +97,9 @@ const Footer = () => {
               © {new Date().getFullYear()} SarvSaathi. All rights reserved. Made with <FiHeart className="heart-icon" /> in India
             </p>
             <div className="footer-bottom-links">
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
-              <a href="#">Sitemap</a>
+              <Link to="/privacy">Privacy Policy</Link>
+              <Link to="/terms">Terms of Service</Link>
+              <Link to="/sitemap">Sitemap</Link>
             </div>
           </div>
         </div>

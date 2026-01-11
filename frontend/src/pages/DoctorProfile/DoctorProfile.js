@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import {
   FiArrowLeft, FiStar, FiMapPin, FiClock, FiPhone, FiMail,
   FiCalendar, FiAward, FiShield, FiHeart, FiShare2, FiCheck,
-  FiChevronRight, FiUser, FiMessageSquare, FiVideo, FiBriefcase
+  FiChevronRight, FiUser, FiVideo, FiBriefcase
 } from 'react-icons/fi';
 import './DoctorProfile.css';
 
