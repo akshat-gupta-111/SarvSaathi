@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { emergencyAPI } from '../../api';
 import { toast } from 'react-toastify';
 import {
   FiAlertTriangle, FiPhone, FiMapPin, FiNavigation, FiPlus,
-  FiEdit2, FiTrash2, FiX, FiCheck, FiShare2, FiClock,
+  FiTrash2, FiX, FiCheck, FiShare2, FiClock,
   FiHeart, FiShield, FiAlertCircle, FiPhoneCall, FiUsers
 } from 'react-icons/fi';
 import './Emergency.css';
 
 const Emergency = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('sos');
   const [sosActive, setSosActive] = useState(false);
   const [countdown, setCountdown] = useState(5);
@@ -58,6 +57,7 @@ const Emergency = () => {
     fetchEmergencyContacts();
     setNearbyHospitals(mockHospitals);
     getCurrentLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   // Countdown for SOS
@@ -69,6 +69,7 @@ const Emergency = () => {
       triggerEmergency();
     }
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sosActive, countdown]);
 
   const getCurrentLocation = () => {
